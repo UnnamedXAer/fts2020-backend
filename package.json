@@ -16,17 +16,24 @@
     "express": "^4.17.1",
     "express-session": "^1.17.0",
     "http-errors": "^1.7.3",
+    "knex": "^0.20.8",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
-    "pg": "^7.18.1"
+    "pg": "^7.18.1",
+    "ts-node": "^8.6.2"
   },
   "devDependencies": {
+    "@types/bcrypt": "^3.0.0",
     "@types/cors": "^2.8.6",
     "@types/express": "^4.17.2",
     "@types/express-session": "^1.15.16",
     "@types/http-errors": "^1.6.3",
+    "@types/knex": "^0.16.1",
     "@types/passport": "^1.0.2",
+    "@types/passport-google-oauth20": "^2.0.3",
+    "@types/passport-local": "^1.0.33",
     "nodemon": "^2.0.2",
+    "passport-google-oauth20": "^2.0.0",
     "typescript": "^3.7.5"
   }
 }
