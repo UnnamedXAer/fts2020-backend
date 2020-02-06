@@ -1,6 +1,8 @@
 require('dotenv').config();
+const path = require('path');
+const BASE_PATH = path.join(__dirname, 'src', 'server', 'db');
 
-export default {
+module.exports = {
     development: {
         client: 'pg',
         version: '9.6',
@@ -16,14 +18,12 @@ export default {
         },
         migrations: {
             tableName: `knex_migrations`,
-            directory: `./migrations`
+            directory: path.join(BASE_PATH, 'migrations')
         },
         seeds: {
-            directory: `./seeds/dev`
+            directory: path.join(BASE_PATH, 'seeds', 'dev')
         },
         useNullAsDefault: true
     },
-    production: {
-		
-	}
+    production: {}
 };

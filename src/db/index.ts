@@ -11,7 +11,7 @@ console.log(
     `Will connect to postgres`
 );
 
-import knexConfigurations from './knexfile';
+import knexConfigurations from '../../knexfile';
 const database = knex(knexConfigurations[env]);
 
 database
