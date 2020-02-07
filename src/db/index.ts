@@ -1,4 +1,4 @@
-import knex from 'knex';
+import Knex from 'knex';
 const NODE_ENV = process.env.NODE_ENV;
 if (NODE_ENV != 'development' && NODE_ENV != 'development') {
     throw new Error(
@@ -11,11 +11,15 @@ console.log(
     `Will connect to postgres`
 );
 
-import knexConfigurations from '../../knexfile';
-const database = knex(knexConfigurations[env]);
+const knexConfigurations = require('./knexfile');
+const database = Knex(knexConfigurations[env]);
 
-database
-    .raw('select 1')
+database('logs')
+    .insert({
+        txt: 'Checking db connection on app server start.',
+        source: '/db/index',
+        createAt: new Date()
+    })
     .then(() => {
         console.log(`Connected to database - OK`);
     })
@@ -24,5 +28,5 @@ database
         process.exit(1);
     });
 
-
 export default database;
+module.exports = database;

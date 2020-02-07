@@ -5,7 +5,7 @@ import session from 'express-session';
 import cors from 'cors';
 import passport from 'passport';
 import errorMiddleware from './middleware/errorMiddleware';
-// const KnexSessionStore = require('connect-session-knex')(session);
+const KnexSessionStore = require('connect-session-knex')(session);
 export const app = express();
 app.use(
     cors({
@@ -25,16 +25,16 @@ app.use(
     })
 );
 
-// const store = new KnexSessionStore({
-//     knex: require('../db'),
-//     tablename: 'sessions' // optional. Defaults to 'sessions'
-// });
+const store = new KnexSessionStore({
+    knex: require('../db'),
+    tablename: 'sessions' // optional. Defaults to 'sessions'
+});
 
 const expressSession = session({
     secret: 'tmpSecret',
     resave: false,
     saveUninitialized: true,
-    // store: store
+    store: store
     // cookie: {secure: true}
 });
 
