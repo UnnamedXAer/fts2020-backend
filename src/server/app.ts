@@ -5,6 +5,7 @@ import session from 'express-session';
 import cors from 'cors';
 import passport from 'passport';
 import errorMiddleware from './middleware/errorMiddleware';
+import router from './Routes';
 const KnexSessionStore = require('connect-session-knex')(session);
 export const app = express();
 app.use(
@@ -43,6 +44,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // routes here
+app.use(router);
 
 app.get('/', (_req: Request, res: Response) => {
     res.send({ response: 'FTS 2020' }).status(200);

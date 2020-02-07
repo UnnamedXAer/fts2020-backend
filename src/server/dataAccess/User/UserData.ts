@@ -1,8 +1,8 @@
 import knex from '../../../db';
-import UserModel from '../../models/UserModel';
+import UserModel from '../../Models/UserModel';
 import { UserRow } from '../../CustomTypes/Types';
-import { UserExternalRegisterModel } from '../../models/UserAuthModels';
-import { UserRegisterModel } from '../../models/UserAuthModels';
+import { UserExternalRegisterModel } from '../../Models/UserAuthModels';
+import { UserRegisterModel } from '../../Models/UserAuthModels';
 
 class UserData {
     static async getAll() {
