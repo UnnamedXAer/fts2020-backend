@@ -4,8 +4,8 @@
   "description": "FTS-2020 backend",
   "main": "dist/index.js",
   "scripts": {
-	"test": "echo \"Error: no test specified\" && exit 1",
-	"start": "echo \"Error: no start script\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "echo \"Error: no start script\" && exit 1",
     "migrate:make": "knex -x ts --cwd src/db/ migrate:make",
     "migrate:latest": "knex --cwd src/db/ migrate:latest",
     "migrate:rollback": "knex --cwd src/db/ migrate:rollback --all",
@@ -29,7 +29,8 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "pg": "^7.18.1",
-    "ts-node": "^8.6.2"
+    "ts-node": "^8.6.2",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^3.0.0",

@@ -1,4 +1,5 @@
 require('dotenv').config();
+import Logger from '../logger';
 import express, { Request, Response, NextFunction } from 'express';
 import createError from 'http-errors';
 import session from 'express-session';
@@ -43,6 +44,7 @@ app.use(expressSession);
 app.use(passport.initialize());
 app.use(passport.session());
 
+Logger.info('About to add Routes');
 // routes here
 app.use(router);
 
