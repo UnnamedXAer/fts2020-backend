@@ -3,7 +3,6 @@ import HttpException from '../utils/HttpException';
 import logger from '../../logger';
 
 export default function errorMiddleware(err: HttpException, _req: Request, res: Response, _next: NextFunction) {
-	console.log(typeof err)
 	const status = err.statusCode || res.statusCode || 500;
 	const message = err.message;
 	const data = err.data || {};
