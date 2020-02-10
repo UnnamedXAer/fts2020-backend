@@ -1,8 +1,9 @@
 const path = require('path');
 const BASE_PATH = path.join(__dirname, '../', '../');
+const Logger = require('../logger');
 
 require('dotenv').config({ path: BASE_PATH + '.env' });
-console.log('knexfile: BASE_PATH: ' + BASE_PATH);
+Logger.info('knexfile: BASE_PATH: ' + BASE_PATH);
 
 const connection = {
 	user: process.env.DB_USER as string,
@@ -10,7 +11,7 @@ const connection = {
     password: process.env.DB_PASSWORD as string,
     database: process.env.DB_NAME as string
 };
-console.log('knexfile: database: ' + connection.database);
+Logger.info('knexfile: database: ' + connection.database);
 
 module.exports = {
     development: {

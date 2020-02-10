@@ -1,4 +1,5 @@
 import Knex from 'knex';
+import logger from '../logger';
 const NODE_ENV = process.env.NODE_ENV;
 if (NODE_ENV != 'development' && NODE_ENV != 'development') {
     throw new Error(
@@ -7,9 +8,7 @@ if (NODE_ENV != 'development' && NODE_ENV != 'development') {
 }
 
 const env = NODE_ENV;
-console.log(
-    `Will connect to postgres`
-);
+logger.info(`Will connect to postgres`);
 
 const knexConfigurations = require('./knexfile');
 const database = Knex(knexConfigurations[env]);
@@ -21,10 +20,11 @@ database('logs')
         createAt: new Date()
     })
     .then(() => {
-        console.log(`Connected to database - OK`);
+        logger.info(`Connected to database - OK`);
     })
     .catch(err => {
-        console.error(`Failed to connect to database: ${err}`);
+		logger.error(err);
+		logger.warn('Application will be shut down.');
         process.exit(1);
     });
 
