@@ -106,11 +106,21 @@ class UserData {
             };
         }
         try {
-            const results: number[] = await knex('users')
+            const results: UserRow[] = await knex('users')
                 .insert(newUser)
-                .returning('id');
+                .returning('*');
 
-            return results[0];
+			const row = results[0];
+            return new UserModel(
+				row.id!,
+				row.emailAddress,
+				row.userName,
+				void 0,
+				row.provider,
+				row.joinDate,
+				row.avatarUrl,
+				row.active
+			);
         } catch (err) {
             throw err;
         }
