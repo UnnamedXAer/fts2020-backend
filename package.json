@@ -2,7 +2,7 @@
   "name": "fts-backend",
   "version": "1.0.0",
   "description": "FTS-2020 backend",
-  "main": "dist/index.js",
+  "main": "dist/server/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "echo \"Error: no start script\" && exit 1",
