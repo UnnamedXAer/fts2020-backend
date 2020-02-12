@@ -9,6 +9,9 @@ import errorMiddleware from './middleware/errorMiddleware';
 import router from './Routes';
 import { expressWinstonLogger } from '../logger/expressLogger';
 const KnexSessionStore = require('connect-session-knex')(session);
+import passportConfig from './auth/passport';
+passportConfig(passport);
+
 export const app = express();
 app.use(
 	cors({
@@ -49,7 +52,6 @@ app.use(passport.session());
 app.use(expressWinstonLogger);
 logger.info('About to add Routes');
 app.use(router);
-
 app.get('/', (_req: Request, res: Response) => {
 	res.send({ response: 'FTS 2020' }).status(200);
 });
