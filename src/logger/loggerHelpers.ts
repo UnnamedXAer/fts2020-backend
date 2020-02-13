@@ -10,7 +10,7 @@ export const consoleTransportFormat = format.combine(
 	format.splat(),
 	format.printf(info => {
 		return (
-			`${info.timestamp} ${info.level}: ${info.message}` +
+			`${info.label} ${info.timestamp} ${info.ms? '('+info.ms+') ' : ''}${info.level}: ${info.message}` +
 			(showStack && info.stack ? `\nStack: ${info.stack}` : '')
 		);
 	})
