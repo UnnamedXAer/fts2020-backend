@@ -21,6 +21,21 @@ export async function up(knex: Knex): Promise<any> {
 			table.foreign('lastModBy').references('users.id');
 		}),
 
+		knex.schema.createTable('flatMembers', table => {
+			table.increments('id').primary();
+			table.integer('flatId').notNullable();
+			table.integer('userId').notNullable();
+			table.integer('addedBy').notNullable();
+			table
+				.dateTime('addedAt', { precision: 6, useTz: true })
+				.defaultTo(knex.fn.now())
+				.notNullable();
+
+			table.foreign('flatId').references('flat.id');
+			table.foreign('userId').references('users.id');
+			table.foreign('addedBy').references('users.id');
+		}),
+
 		knex.schema.createTable('task', table => {
 			table.increments('id').primary();
 			table.integer('flatId').notNullable();
@@ -114,11 +129,12 @@ export async function up(knex: Knex): Promise<any> {
 
 export async function down(knex: Knex): Promise<any> {
 	return Promise.all([
-		knex.schema.dropTable('flat'),
-		knex.schema.dropTable('task'),
-		knex.schema.dropTable('taskMembers'),
-		knex.schema.dropTable('taskPeriods'),
-		knex.schema.dropTable('taskPeriodChangeRequest')
+		knex.schema.dropTableIfExists('taskPeriodChangeRequest'),
+		knex.schema.dropTableIfExists('taskPeriods'),
+		knex.schema.dropTableIfExists('taskMembers'),
+		knex.schema.dropTableIfExists('task'),
+		knex.schema.dropTableIfExists('flatMembers'),
+		knex.schema.dropTableIfExists('flat')
 	]).then(() => {
 		console.log('"addNewTables" migration DOWN Executed ');
 	});
