@@ -1,6 +1,6 @@
 import knex from '../../../db';
 import UserModel from '../../Models/UserModel';
-import { UserRow } from '../../CustomTypes/Types';
+import { UserRow } from '../../CustomTypes/DbTypes';
 import { UserExternalRegisterModel } from '../../Models/UserAuthModels';
 import { UserRegisterModel } from '../../Models/UserAuthModels';
 
