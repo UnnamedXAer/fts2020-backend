@@ -17,8 +17,8 @@ export async function up(knex: Knex): Promise<any> {
 				.defaultTo(knex.fn.now())
 				.notNullable();
 
-			table.foreign('createAt').references('users.id');
-			table.foreign('lastModAt').references('users.id');
+			table.foreign('createBy').references('users.id');
+			table.foreign('lastModBy').references('users.id');
 		}),
 
 		knex.schema.createTable('task', table => {
@@ -44,8 +44,8 @@ export async function up(knex: Knex): Promise<any> {
 				.defaultTo(knex.fn.now())
 				.notNullable();
 
-			table.foreign('createAt').references('users.id');
-			table.foreign('lastModAt').references('users.id');
+			table.foreign('createBy').references('users.id');
+			table.foreign('lastModBy').references('users.id');
 			table.foreign('flatId').references('flat.id');
 		}),
 
@@ -83,7 +83,6 @@ export async function up(knex: Knex): Promise<any> {
 			table.foreign('taskId').references('task.id');
 			table.foreign('assignedTo').references('users.id');
 			table.foreign('completedBy').references('users.id');
-			
 		}),
 
 		knex.schema.createTable('taskPeriodChangeRequest', table => {
@@ -103,11 +102,24 @@ export async function up(knex: Knex): Promise<any> {
 				.dateTime('respondedAt', { precision: 6, useTz: true })
 				.nullable();
 
-			table.foreign('taskPeriodId').references('taskPeriod.id');
+			table.foreign('taskPeriodId').references('taskPeriods.id');
 			table.foreign('requestedBy').references('users.id');
 			table.foreign('respondedBy').references('users.id');
 		})
-	]);
+	])
+	.then(() => {
+        console.log('"addNewTables" migration UP Executed ');
+	});
 }
 
-export async function down(knex: Knex): Promise<any> {}
+export async function down(knex: Knex): Promise<any> {
+	return Promise.all([
+		knex.schema.dropTable('flat'),
+		knex.schema.dropTable('task'),
+		knex.schema.dropTable('taskMembers'),
+		knex.schema.dropTable('taskPeriods'),
+		knex.schema.dropTable('taskPeriodChangeRequest')
+	]).then(() => {
+		console.log('"addNewTables" migration DOWN Executed ');
+	});
+}
