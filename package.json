@@ -8,11 +8,13 @@
     "start": "echo \"Error: no start script\" && exit 1",
     "migrate:make": "knex -x ts --cwd src/db/ migrate:make",
     "migrate:latest": "knex --cwd src/db/ migrate:latest",
-    "migrate:rollback": "knex --cwd src/db/ migrate:rollback --all",
-    "migrate:down": "knex --cwd src/db/ migrate:down",
-    "migrate:list": "knex --cwd src/db/ migrate:list",
-    "seed:make": "knex -x ts --cwd src/db/ seed:make",
-    "seed:run": "knex --cwd src/db/ seed:run"
+    "migrate:down-to": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:down",
+    "migrate:down": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:down",
+    "migrate:rollback": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:rollback",
+    "migrate:rollback-all": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:rollback --all",
+    "migrate:list": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:list",
+    "seed:make": "cross-env TRACE_LEVEL=\"Silly\" knex -x ts --cwd src/db/ seed:make",
+    "seed:run": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ seed:run"
   },
   "author": "Kamil",
   "license": "ISC",
@@ -44,6 +46,7 @@
     "@types/passport": "^1.0.2",
     "@types/passport-google-oauth20": "^2.0.3",
     "@types/passport-local": "^1.0.33",
+    "cross-env": "^7.0.0",
     "nodemon": "^2.0.2",
     "typescript": "^3.7.5"
   }
