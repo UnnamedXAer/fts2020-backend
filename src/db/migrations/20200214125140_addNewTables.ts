@@ -5,7 +5,7 @@ export async function up(knex: Knex): Promise<any> {
 		knex.schema.createTable('flat', table => {
 			table.increments('id').primary();
 			table.string('name', 100).notNullable();
-			table.string('address', 500).nullable();
+			table.string('address', 200).nullable();
 			table.integer('createBy').notNullable();
 			table
 				.dateTime('createAt', { precision: 6, useTz: true })
