@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import HttpException from '../utils/HttpException';
 import logger from '../../logger';
+import { loggedUserId } from '../utils/authUser';
 
 export default function errorMiddleware(
 	err: HttpException,
@@ -27,13 +28,24 @@ export default function errorMiddleware(
 				resStatusCode: res.statusCode
 			},
 			env: env,
-			user: req.user
+			user: loggedUserId(req)
 		};
 		if (status >= 500) {
-			Object.assign({stack: err.stack}, logData);
-			logger.error('%o', logData);
-		} else {
-			logger.warn('%o', logData);
+			Object.assign(logData, { stack: err.stack });
+			logger.error(
+				'[%s] %s %o',
+				req.method,
+				req.url,
+				JSON.stringify(logData)
+			);
+		}
+		else {
+			logger.warn(
+				'[%s] %s %O',
+				req.method,
+				req.url,
+				JSON.stringify(logData)
+			);
 		}
 	}
 	const resObj = {
