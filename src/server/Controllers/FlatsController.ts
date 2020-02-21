@@ -1,10 +1,9 @@
-import { RequestHandler } from 'express';
+import { RequestHandler, Request } from 'express';
 import HttpStatus from 'http-status-codes';
 import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
 import FlatModel from '../Models/FlatModel';
 import { body, validationResult } from 'express-validator';
-import UserModel from '../Models/UserModel';
 import logger from '../../logger';
 import { loggedUserId } from '../utils/authUser';
 
@@ -24,12 +23,33 @@ export const getFlats: RequestHandler = async (req, res, next) => {
 
 export const create: RequestHandler[] = [
 	body('name')
+		.isString()
+		.withMessage('That is not correct value for name')
 		.trim()
-		.escape()
 		.isLength({ min: 2 })
 		.withMessage('Name must be 2+ chars long.')
 		.isLength({ max: 50 })
-		.withMessage('Name cannot be more than 50 chars long.'),
+		.withMessage('Name cannot be more than 50 chars long.')
+		.custom(async (value: string, { req }) => {
+			try {
+				const exists = await FlatData.verifyIfMember(
+					loggedUserId(<Request>req),
+					value
+				);
+				if (exists) {
+					throw new Error(
+						'You are already member of flat with this name.'
+					);
+				}
+			} 
+			catch (err) {
+				const errorMessage =
+					process.env.NODE_ENV == 'development'
+						? err.message
+						: 'Something went wrong during validation.';
+				throw new Error(errorMessage);
+			}
+		}),
 	body('address')
 		.if((value: any) => {
 			console.log('address', value);
@@ -50,12 +70,14 @@ export const create: RequestHandler[] = [
 		)
 		.custom((value: []) => {
 			const everyOutput = value.every(x => {
-			const output = Number.isInteger(x) && x > 0;
-			return output;
-		});
-		return everyOutput;
-	})
-		.withMessage('That is not correct values for members - not an positive integers.'),
+				const output = Number.isInteger(x) && x > 0;
+				return output;
+			});
+			return everyOutput;
+		})
+		.withMessage(
+			'That is not correct values for members - not an positive integers.'
+		),
 	async (req, res, next) => {
 		logger.debug(
 			'[POST] /flats/ user (%s) try to create flat: %o',
@@ -78,17 +100,15 @@ export const create: RequestHandler[] = [
 		let { address, members, name } = req.body as FlatModel;
 		name = name?.trim();
 		address = address?.trim();
-		res.status(HttpStatus.CREATED).json(req.body);
 
 		try {
 			const createdFlat = await FlatData.create(
 				new FlatModel({
 					address,
 					members,
-					name,
-					createAt: new Date(),
-					createBy: (<UserModel>req.user).id
-				})
+					name
+				}),
+				loggedUserId(req)
 			);
 
 			res.status(HttpStatus.CREATED).json(createdFlat);

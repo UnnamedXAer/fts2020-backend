@@ -46,8 +46,16 @@ export interface FlatRow {
 	lastModAt: Date;
 }
 
+export interface FlatMemberRow {
+	id?: number;
+	flatId: number;
+	userId: number;
+	addedAt: Date;
+	addedBy: number;
+}
+
 export interface TaskMembersRow {
-	id: number;
+	id?: number;
 	flatId: number;
 	userId: number;
 	position: number;
