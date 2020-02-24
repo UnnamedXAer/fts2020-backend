@@ -1,12 +1,42 @@
 import FlatModel from '../../Models/FlatModel';
 import knex from '../../../db';
 import logger from '../../../logger';
-import {
-	FlatRow,
-	FlatMemberRow
-} from '../../CustomTypes/DbTypes';
+import { FlatRow, FlatMemberRow } from '../../CustomTypes/DbTypes';
 
 class FlatData {
+	static async getById(id: number) {
+		try {
+			const results: FlatRow[] = await knex('flat').where({ id });
+			const flatRow = results[0];
+
+			if (flatRow) {
+				const membersResults: { userId: number }[] = await knex(
+					'flatMembers'
+				)
+					.select('userId')
+					.where({ flatId: flatRow.id });
+
+				const flat = new FlatModel({
+					id: flatRow.id,
+					name: flatRow.name,
+					address: flatRow.address,
+					createBy: flatRow.createBy,
+					createAt: flatRow.createAt,
+					members: membersResults.map(x => x.userId)
+				});
+				logger.debug('[FlatData].getById flat (%s): %o', id, flat);
+
+				return flat;
+			} else {
+				logger.debug('[FlatData].getById flat (%s): do not exists', id);
+				return null;
+			}
+		} catch (err) {
+			logger.debug('[FlatData].getById error: %o', err);
+			throw err;
+		}
+	}
+
 	static async getAll() {
 		try {
 			const results: FlatRow[] = await knex('flat').select('*');
@@ -40,7 +70,6 @@ class FlatData {
 
 	static async getByCreatedBy(userId: number) {
 		try {
-			throw new Error('not implemented yet');
 			const results: FlatRow[] = await knex('flat')
 				.select('*')
 				.where({ createBy: userId });
@@ -65,31 +94,11 @@ class FlatData {
 		}
 	}
 
-	static async verifyIfMember(userId: number, name: string) {
-		try {
-			const results = await knex('flat')
-				.join('flatMembers', 'flat.id', 'flatMembers.flatId')
-				.whereRaw('LOWER(name) like ?', name.toLowerCase())
-				.andWhere({ userId }).count(1);
-
-
-			// const results = await knex('flatMembers').raw()
-
-			const exists = results.length > 0;
-			logger.debug('[FlatData].verifyIfExist exists: %s', exists);
-			return exists;
-		} catch (err) {
-			logger.debug('[FlatData].verifyIfExist error: %o', err);
-			throw err;
-		}
-	}
-
 	static async create(
 		flat: FlatModel,
 		loggedUserId: number
 	): Promise<FlatModel> {
 		const currentDate = new Date();
-		// let createdFlat: FlatModel;
 
 		const flatData = {
 			name: flat.name,
@@ -123,7 +132,7 @@ class FlatData {
 				};
 				const addedMembers = await trx('flatMembers')
 					.insert(memberData)
-					.returning('id');
+					.returning('userId');
 				createdFlat.members = addedMembers;
 
 				logger.debug('[FlatData].create flat: %o', createdFlat);
@@ -137,42 +146,39 @@ class FlatData {
 		}
 	}
 
-	static async addMembers(flatId: number, members: number[]) {
+	static async delete(id: number, userId: number) {
 		try {
-			const existingMembers = await this.getMembers(flatId);
+			let results = await knex.transaction(async trx => {
+				await trx('flatMembers')
+					.delete()
+					.where({ flatId: id });
 
-			const notIncludedMembers = members.filter(
-				x => !existingMembers.includes(x)
-			);
+				const deleteFlatResults = await trx('flat')
+					.delete()
+					.where({ id });
 
-			const membersData = notIncludedMembers.map(x => ({
-				userId: x,
-				flatId
-			}));
-
-			const results: number[] = await knex('flatMembers')
-				.insert(membersData)
-				.returning('id');
-
-			logger.debug(
-				'[FlatData].addMembers added members for: %s are: %o',
-				flatId,
-				results
-			);
+				logger.debug(
+					'[FlatData].delete flat deleted: %s, by: %s',
+					id,
+					userId
+				);
+				return deleteFlatResults > 0;
+			});
 
 			return results;
 		} catch (err) {
-			logger.debug('[FlatData].addMembers error: %o', err);
+			logger.debug('[FlatData].delete error: %o', err);
 			throw err;
 		}
 	}
 
 	static async getMembers(flatId: number) {
 		try {
-			const existingMembers: number[] = await knex('flatMembers')
+			const results: { userId: number }[] = await knex('flatMembers')
 				.select('userId')
 				.where({ flatId });
 
+			const existingMembers = results.map(x => x.userId);
 			logger.debug(
 				'[FlatData].getMembers existing members for: %s are: %o',
 				flatId,
@@ -181,6 +187,142 @@ class FlatData {
 			return existingMembers;
 		} catch (err) {
 			logger.debug('[FlatData].getMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async addMembers(
+		flatId: number,
+		members: number[],
+		signedInUserId: number
+	) {
+		try {
+			const existingMembers = await this.getMembers(flatId);
+
+			const notIncludedMembers = members.filter(
+				x => !existingMembers.includes(x)
+			);
+			const insertDate = new Date();
+			const membersData = notIncludedMembers.map(
+				x =>
+					<FlatMemberRow>{
+						userId: x,
+						flatId,
+						addedAt: insertDate,
+						addedBy: signedInUserId
+					}
+			);
+
+			const results: number[] | { rows: number[] } = await knex(
+				'flatMembers'
+			)
+				.insert(membersData)
+				.returning('id');
+
+			let addedMembers: number[];
+			if (Array.isArray(results)) {
+				addedMembers = results;
+			} else {
+				addedMembers = results.rows ? results.rows : [];
+			}
+			logger.debug(
+				'[FlatData].addMembers added members for: %s are: %o',
+				flatId,
+				addedMembers
+			);
+
+			return addedMembers;
+		} catch (err) {
+			logger.debug('[FlatData].addMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async deleteMembers(
+		flatId: number,
+		members: number[],
+		signedInUserId: number
+	) {
+		try {
+			const membersToDelete: { userId: number; flatId: number }[] = [];
+			members.forEach(x => {
+				if (x !== signedInUserId) {
+					membersToDelete.push({ userId: x, flatId });
+				}
+			});
+
+			const results = await knex('flatMembers')
+				.delete()
+				.where(membersToDelete);
+
+			const deletedMembers = results;
+
+			logger.debug(
+				'[FlatData].deleteMembers deleted members for: %s are: %o',
+				flatId,
+				deletedMembers
+			);
+
+			return deletedMembers;
+		} catch (err) {
+			logger.debug('[FlatData].deleteMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async isUserFlatOwner(userId: number, id: number) {
+		try {
+			const flat = await this.getById(id);
+			const isOwner = !!flat && flat.createBy === userId;
+			logger.debug(
+				'[FlatData].isFlatOwner flat %s, user: %s, isOwner: %s',
+				id,
+				userId,
+				isOwner
+			);
+			return isOwner;
+		} catch (err) {
+			logger.debug('[FlatData].isFlatOwner error: %o', err);
+			throw err;
+		}
+	}
+
+	static async verifyIfMember(userId: number, name: string, id?: number) {
+		let exists = false;
+
+		try {
+			let results;
+
+			if (id) {
+				results = await knex('flatMembers')
+					.andWhere({ userId, flatId: id })
+					.count('id');
+			} else {
+				results = await knex('flat')
+					.join('flatMembers', 'flat.id', 'flatMembers.flatId')
+					.whereRaw('LOWER(name) like ?', name.toLowerCase())
+					.andWhere({ userId })
+					.count('flat.id');
+			}
+
+			if (results[0] && results[0].count) {
+				const { count } = results[0];
+				if (typeof count == 'number') {
+					exists = count > 0;
+				} else {
+					exists = parseInt(count) > 0;
+				}
+			}
+
+			logger.debug(
+				'[FlatData].verifyIfExist flat with name: %s, for user: %s - exists: %s',
+				name,
+				userId,
+				exists
+			);
+			return exists;
+		} catch (err) {
+			logger.debug('[FlatData].verifyIfExist error: %o', err);
 			throw err;
 		}
 	}
