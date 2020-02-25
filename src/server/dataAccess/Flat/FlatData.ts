@@ -217,7 +217,7 @@ class FlatData {
 				'flatMembers'
 			)
 				.insert(membersData)
-				.returning('id');
+				.returning('userId');
 
 			let addedMembers: number[];
 			if (Array.isArray(results)) {
@@ -244,26 +244,24 @@ class FlatData {
 		signedInUserId: number
 	) {
 		try {
-			const membersToDelete: { userId: number; flatId: number }[] = [];
+			const membersToDelete: [number, number ][] = [];
 			members.forEach(x => {
-				if (x !== signedInUserId) {
-					membersToDelete.push({ userId: x, flatId });
+				if (x != signedInUserId) {
+					membersToDelete.push([x, flatId ]);
 				}
 			});
 
-			const results = await knex('flatMembers')
+			const deletedRowsCnt = await knex('flatMembers')
 				.delete()
-				.where(membersToDelete);
-
-			const deletedMembers = results;
+				.whereIn(['userId', 'flatId'], membersToDelete);
 
 			logger.debug(
-				'[FlatData].deleteMembers deleted members for: %s are: %o',
+				'[FlatData].deleteMembers deleted members count for: %s is: %o',
 				flatId,
-				deletedMembers
+				deletedRowsCnt
 			);
 
-			return deletedMembers;
+			return deletedRowsCnt;
 		} catch (err) {
 			logger.debug('[FlatData].deleteMembers error: %o', err);
 			throw err;
@@ -273,7 +271,7 @@ class FlatData {
 	static async isUserFlatOwner(userId: number, id: number) {
 		try {
 			const flat = await this.getById(id);
-			const isOwner = !!flat && flat.createBy === userId;
+			const isOwner = !!flat && flat.createBy == userId;
 			logger.debug(
 				'[FlatData].isFlatOwner flat %s, user: %s, isOwner: %s',
 				id,
