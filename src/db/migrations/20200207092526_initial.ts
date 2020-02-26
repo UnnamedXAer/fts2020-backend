@@ -2,7 +2,7 @@ import * as Knex from 'knex';
 
 export async function up(knex: Knex): Promise<any> {
     return Promise.all([
-        knex.schema.createTable('users', table => {
+        knex.schema.createTable('appUser', table => {
             table.increments('id').primary();
             table
                 .string('emailAddress', 258)
@@ -48,20 +48,20 @@ export async function up(knex: Knex): Promise<any> {
 			table.integer('createBy');
 			table.comment('Table for app logs');
 
-			table.foreign('createBy').references('users.id');
+			table.foreign('createBy').references('appUser.id');
         })
     ]).then(() => {
-        console.log('Initial migration UP Executed ');
+        console.log('"Initial" migration UP Executed ');
     });
 }
 
 export async function down(knex: Knex): Promise<any> {
     return Promise.all([
-        knex.schema.dropTable('sessions'),
-        knex.schema.dropTable('logs'),
-        knex.schema.dropTable('trc'),
-        knex.schema.dropTable('users')
+        knex.schema.dropTableIfExists('sessions'),
+        knex.schema.dropTableIfExists('logs'),
+        knex.schema.dropTableIfExists('trc'),
+        knex.schema.dropTableIfExists('appUser')
     ]).then(() => {
-        console.log('Initial migration DOWN Executed ');
+        console.log('"Initial" migration DOWN Executed ');
     });
 }

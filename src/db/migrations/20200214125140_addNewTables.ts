@@ -17,8 +17,8 @@ export async function up(knex: Knex): Promise<any> {
 				.defaultTo(knex.fn.now())
 				.notNullable();
 
-			table.foreign('createBy').references('users.id');
-			table.foreign('lastModBy').references('users.id');
+			table.foreign('createBy').references('appUser.id');
+			table.foreign('lastModBy').references('appUser.id');
 		}),
 
 		knex.schema.createTable('flatMembers', table => {
@@ -32,8 +32,8 @@ export async function up(knex: Knex): Promise<any> {
 				.notNullable();
 
 			table.foreign('flatId').references('flat.id');
-			table.foreign('userId').references('users.id');
-			table.foreign('addedBy').references('users.id');
+			table.foreign('userId').references('appUser.id');
+			table.foreign('addedBy').references('appUser.id');
 		}),
 
 		knex.schema.createTable('task', table => {
@@ -43,7 +43,8 @@ export async function up(knex: Knex): Promise<any> {
 			table.string('description', 500).nullable();
 			table.dateTime('startDate', { precision: 6, useTz: true });
 			table.dateTime('endDate', { precision: 6, useTz: true });
-			table.integer('timePeriod').notNullable();
+			table.enu('periodUnit', ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']);
+			table.integer('periodValue', 3).notNullable();
 			table
 				.boolean('active')
 				.notNullable()
@@ -59,14 +60,16 @@ export async function up(knex: Knex): Promise<any> {
 				.defaultTo(knex.fn.now())
 				.notNullable();
 
-			table.foreign('createBy').references('users.id');
-			table.foreign('lastModBy').references('users.id');
+			table.foreign('createBy').references('appUser.id');
+			table.foreign('lastModBy').references('appUser.id');
 			table.foreign('flatId').references('flat.id');
+
+			table.comment('Table contains details of activities that will be repeated by members in given time periods');
 		}),
 
 		knex.schema.createTable('taskMembers', table => {
 			table.increments('id').primary();
-			table.integer('flatId').notNullable();
+			table.integer('taskId').notNullable();
 			table.integer('userId').notNullable();
 			table.integer('position').notNullable();
 			table
@@ -75,9 +78,11 @@ export async function up(knex: Knex): Promise<any> {
 				.notNullable();
 			table.integer('addedBy').notNullable();
 
-			table.foreign('flatId').references('flat.id');
-			table.foreign('userId').references('users.id');
-			table.foreign('addedBy').references('users.id');
+			table.foreign('taskId').references('task.id');
+			table.foreign('userId').references('appUser.id');
+			table.foreign('addedBy').references('appUser.id');
+
+			table.comment('Table contains links between user that participate in specific task and task.')
 		}),
 
 		knex.schema.createTable('taskPeriods', table => {
@@ -96,8 +101,10 @@ export async function up(knex: Knex): Promise<any> {
 				.nullable();
 
 			table.foreign('taskId').references('task.id');
-			table.foreign('assignedTo').references('users.id');
-			table.foreign('completedBy').references('users.id');
+			table.foreign('assignedTo').references('appUser.id');
+			table.foreign('completedBy').references('appUser.id');
+
+			table.comment('Table contains scheduled tasks periods with assigned users.');
 		}),
 
 		knex.schema.createTable('taskPeriodChangeRequest', table => {
@@ -118,12 +125,13 @@ export async function up(knex: Knex): Promise<any> {
 				.nullable();
 
 			table.foreign('taskPeriodId').references('taskPeriods.id');
-			table.foreign('requestedBy').references('users.id');
-			table.foreign('respondedBy').references('users.id');
+			table.foreign('requestedBy').references('appUser.id');
+			table.foreign('respondedBy').references('appUser.id');
+
+			table.comment('Row represents a request for change in task schedule. eg. user want to swap his weekly cleaning with someone.');
 		})
-	])
-	.then(() => {
-        console.log('"addNewTables" migration UP Executed ');
+	]).then(() => {
+		console.log('"addNewTables" migration UP Executed ');
 	});
 }
 
