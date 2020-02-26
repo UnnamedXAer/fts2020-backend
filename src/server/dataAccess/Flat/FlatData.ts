@@ -118,10 +118,10 @@ class FlatData {
 				const flatRow = results[0];
 				const createdFlat = new FlatModel({
 					id: flatRow.id,
-					name: flat.name,
-					address: flat.address,
-					createAt: flat.createAt,
-					createBy: flat.createBy
+					name: flatRow.name,
+					address: flatRow.address,
+					createAt: flatRow.createAt,
+					createBy: flatRow.createBy
 				});
 
 				const memberData: FlatMemberRow = {
@@ -135,10 +135,10 @@ class FlatData {
 					.returning('userId');
 				createdFlat.members = addedMembers;
 
-				logger.debug('[FlatData].create flat: %o', createdFlat);
 				return createdFlat;
 			});
-
+			
+			logger.debug('[FlatData].create flat: %o', createdFlat);
 			return createdFlat;
 		} catch (err) {
 			logger.debug('[FlatData].create error: %o', err);

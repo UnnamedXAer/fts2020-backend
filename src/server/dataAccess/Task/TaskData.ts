@@ -13,19 +13,7 @@ class TaskData {
 					.select('userId')
 					.where({ taskId: row.id });
 
-				const task = new TaskModel({
-					id: row.id,
-					flatId: row.flatId,
-					title: row.title,
-					description: row.description,
-					startDate: row.startDate,
-					endDate: row.endDate,
-					timePeriod: row.timePeriod,
-					active: row.active,
-					members: membersResults[0],
-					createBy: row.createBy,
-					createAt: row.createAt
-				});
+				const task = this.mapTaskDataToModel(row, membersResults[0]);
 
 				logger.debug('Task: %o', task);
 				return task;
@@ -49,19 +37,7 @@ class TaskData {
 					.select('userId')
 					.where({ taskId: row.id });
 
-				const task = new TaskModel({
-					id: row.id,
-					flatId: row.flatId,
-					title: row.title,
-					description: row.description,
-					startDate: row.startDate,
-					endDate: row.endDate,
-					timePeriod: row.timePeriod,
-					active: row.active,
-					members: membersResults[0],
-					createBy: row.createBy,
-					createAt: row.createAt
-				});
+				const task = this.mapTaskDataToModel(row, membersResults[0]);
 
 				logger.debug('Task: %o', task);
 				return task;
@@ -73,7 +49,7 @@ class TaskData {
 		}
 	}
 
-	static async create(task: TaskModel, loggedUserId) {
+	static async create(task: TaskModel, loggedUserId: number) {
 		const currentDate = new Date();
 
 		const taskData = {
@@ -84,9 +60,46 @@ class TaskData {
 			flatId: task.flatId,
 			lastModAt: currentDate,
 			lastModBy: loggedUserId,
-			timePeriod: task.timePeriod,
-			
+			startDate: task.startDate,
+			endDate: task.endDate,
+			title: task.title,
+			timePeriodUnit: task.timePeriodUnit,
+			timePeriodValue: task.timePeriodValue
 		} as TaskRow;
+
+		try {
+			const createdTask = knex.transaction(async trx => {
+				const results: TaskRow[] = await trx('task')
+					.insert(taskData)
+					.returning('*');
+
+				const createdTask = this.mapTaskDataToModel(results[0]);
+				return createdTask;
+			});
+
+			logger.debug('[FlatData].create flat: %o', createdTask);
+			return createdTask;
+		} catch (err) {
+			logger.debug('[Task].create error: %o', err);
+			throw err;
+		}
+	}
+
+	private static mapTaskDataToModel(row: TaskRow, members?: number[]) {
+		return new TaskModel({
+			id: row.id,
+			flatId: row.flatId,
+			title: row.title,
+			description: row.description,
+			startDate: row.startDate,
+			endDate: row.endDate,
+			timePeriodUnit: row.timePeriodUnit,
+			timePeriodValue: row.timePeriodValue,
+			active: row.active,
+			members: members,
+			createBy: row.createBy,
+			createAt: row.createAt
+		});
 	}
 }
 

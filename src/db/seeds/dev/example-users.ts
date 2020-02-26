@@ -12,58 +12,63 @@ export async function seed(knex: Knex): Promise<any> {
 
     // Deletes ALL existing entries
     return Promise.all<{
-        command: string;
-        rowCount: number;
-    }>([
-        knex('users')
-            .del()
-            .then(() => {
-                // Inserts seed entries
-                return knex('users').insert([
-                    {
-                        emailAddress: 'test@test.com',
-                        userName: 'Long John Silver',
-                        provider: 'local',
-                        password: hashPassword,
-                        avatarUrl,
-                        active: true
-                    },
-                    {
-                        emailAddress: 'rkl2@o2.pl',
-                        userName: 'Kamil',
-                        provider: 'local',
-                        password: hashPassword,
-                        avatarUrl,
-                        active: true
-                    },
-                    {
-                        emailAddress: 'no@test.com',
-                        userName: 'Ann',
-                        provider: 'local',
-                        password: hashPassword,
-                        avatarUrl,
-                        active: false
-                    },
-                    {
-                        emailAddress: 'dean@test.com',
-                        userName: 'Dean W',
-                        provider: 'local',
-                        password: hashPassword,
-                        avatarUrl,
-                        active: true
-                    }
-                ]);
-            }),
-        knex('logs').insert({
+		command: string;
+		rowCount: number;
+	}>([
+		knex('appUser')
+			.del()
+			.then(() => {
+				// Inserts seed entries
+				return knex('appUser').insert([
+					{
+						emailAddress: 'test@test.com',
+						userName: 'Long John Silver',
+						provider: 'local',
+						password: hashPassword,
+						avatarUrl,
+						active: true
+					},
+					{
+						emailAddress: 'rkl2@o2.pl',
+						userName: 'Kamil',
+						provider: 'local',
+						password: hashPassword,
+						avatarUrl,
+						active: true
+					},
+					{
+						emailAddress: 'no@test.com',
+						userName: 'Ann',
+						provider: 'local',
+						password: hashPassword,
+						avatarUrl,
+						active: false
+					},
+					{
+						emailAddress: 'dean@test.com',
+						userName: 'Dean W',
+						provider: 'local',
+						password: hashPassword,
+						avatarUrl,
+						active: true
+					}
+				]);
+			}),
+		knex('logs').insert({
 			txt: 'Run seed: example-users',
 			source: 'seed/dev/'
-        })
-    ])
-        .then(res => {
-            console.log('Done seeding: example-users.');
-            res.forEach(x =>
-                console.log(`command: ${x.command}, rowCount: ${x.rowCount}`)
-            );
-        })
-        .catch(err => console.error('Error in seeding: example-users\n', err && err.detail ? err.detail : err));
+		})
+	])
+		.then(res => {
+			console.log('Done seeding: example-users.');
+			res.forEach(x =>
+				console.log(`command: ${x.command}, rowCount: ${x.rowCount}`)
+			);
+		})
+		.catch(err =>
+			console.error(
+				'Error in seeding: example-users\n',
+				err && err.detail ? err.detail : err
+			)
+		);
 }

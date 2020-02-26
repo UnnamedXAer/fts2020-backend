@@ -1,3 +1,4 @@
+import { TaskPeriodUnit } from './TaskTypes';
 
 export type Provider = 'local' | 'google';
 
@@ -28,12 +29,20 @@ export interface TaskRow {
 	description: string;
 	startDate: Date;
 	endDate: Date;
-	timePeriod: number;
+	timePeriodUnit: TaskPeriodUnit;
+	timePeriodValue: number;
 	active: boolean;
 	createBy: number;
 	createAt: Date;
 	lastModBy: number;
 	lastModAt: Date;
+}
+
+export interface TaskTimePeriod {
+	id: number;
+	taskId: number;
+	unit: TaskPeriodUnit;
+	value: number;
 }
 
 export interface FlatRow {

@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<any> {
 	return Promise.all([
 		knex.schema.createTable('flat', table => {
 			table.increments('id').primary();
-			table.string('name', 100).notNullable();
+			table.string('name', 50).notNullable();
 			table.string('address', 200).nullable();
 			table.integer('createBy').notNullable();
 			table
@@ -39,11 +39,11 @@ export async function up(knex: Knex): Promise<any> {
 		knex.schema.createTable('task', table => {
 			table.increments('id').primary();
 			table.integer('flatId').notNullable();
-			table.string('title', 100).notNullable();
+			table.string('title', 50).notNullable();
 			table.string('description', 500).nullable();
 			table.dateTime('startDate', { precision: 6, useTz: true });
 			table.dateTime('endDate', { precision: 6, useTz: true });
-			table.enu('periodUnit', ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']);
+			table.enu('periodUnit', ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']).notNullable();
 			table.integer('periodValue', 3).notNullable();
 			table
 				.boolean('active')

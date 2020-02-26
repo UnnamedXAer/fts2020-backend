@@ -1,3 +1,5 @@
+import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
+
 export default class TaskModel {
 	id?: number | undefined;
 	flatId?: number;
@@ -5,7 +7,8 @@ export default class TaskModel {
 	description?: string;
 	startDate?: Date;
 	endDate?: Date;
-	timePeriod?: number;
+	timePeriodUnit?: TaskPeriodUnit;
+	timePeriodValue?: number;
 	active?: boolean;
 	members?: number[];
 	createBy?: number;
@@ -19,20 +22,22 @@ export default class TaskModel {
 			description,
 			startDate,
 			endDate,
-			timePeriod,
+			timePeriodUnit,
+			timePeriodValue,
 			active,
 			members,
 			createBy,
 			createAt
 		} = params;
-		
+
 		this.id = id;
 		this.flatId = flatId;
 		this.title = title;
 		this.description = description;
 		this.startDate = startDate;
 		this.endDate = endDate;
-		this.timePeriod = timePeriod;
+		this.timePeriodUnit = timePeriodUnit;
+		this.timePeriodValue = timePeriodValue;
 		this.active = active;
 		this.members = members;
 		this.createBy = createBy;

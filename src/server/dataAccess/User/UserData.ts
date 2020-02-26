@@ -7,7 +7,7 @@ import { UserRegisterModel } from '../../Models/UserAuthModels';
 class UserData {
     static async getAll() {
         try {
-            const results: UserRow[] = await knex('users').select('*');
+            const results: UserRow[] = await knex('appUser').select('*');
             const users = results.map(row => {
                 const user = new UserModel(
                     row.id!,
@@ -30,13 +30,13 @@ class UserData {
 
     static async getByEmailAddress(emailAddress: string) {
         try {
-            const results: UserRow[] = await knex('users')
-                .select('*')
-                .where(
-                    knex.raw('LOWER("emailAddress") = :emailAddress', {
-                        emailAddress: emailAddress.toLowerCase()
-                    })
-                );
+            const results: UserRow[] = await knex('appUser')
+				.select('*')
+				.where(
+					knex.raw('LOWER("emailAddress") = :emailAddress', {
+						emailAddress: emailAddress.toLowerCase()
+					})
+				);
             const row = results[0];
             if (!row) {
                 return null;
@@ -60,9 +60,9 @@ class UserData {
 
     static async getById(id: number) {
         try {
-            const results: UserRow[] = await knex('users')
-                .select('*')
-                .where({ id });
+            const results: UserRow[] = await knex('appUser')
+				.select('*')
+				.where({ id });
             const row = results[0];
             if (!row) {
                 return null;
@@ -106,9 +106,9 @@ class UserData {
             };
         }
         try {
-            const results: UserRow[] = await knex('users')
-                .insert(newUser)
-                .returning('*');
+            const results: UserRow[] = await knex('appUser')
+				.insert(newUser)
+				.returning('*');
 
 			const row = results[0];
             return new UserModel(
@@ -128,14 +128,14 @@ class UserData {
 
     static async update(user: UserModel) {
         try {
-            const results: number[] = await knex('users')
-                .where({ id: user.id })
-                .update({
-                    emailAddress: user.emailAddress,
-                    userName: user.userName,
-                    avatarUrl: user.avatarUrl
-                } as UserRow)
-                .returning('id');
+            const results: number[] = await knex('appUser')
+				.where({ id: user.id })
+				.update({
+					emailAddress: user.emailAddress,
+					userName: user.userName,
+					avatarUrl: user.avatarUrl
+				} as UserRow)
+				.returning('id');
 
             return results[0];
         } catch (err) {
