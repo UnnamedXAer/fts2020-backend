@@ -43,8 +43,10 @@ export async function up(knex: Knex): Promise<any> {
 			table.string('description', 500).nullable();
 			table.dateTime('startDate', { precision: 6, useTz: true });
 			table.dateTime('endDate', { precision: 6, useTz: true });
-			table.enu('periodUnit', ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']).notNullable();
-			table.integer('periodValue', 3).notNullable();
+			table
+				.enu('timePeriodUnit', ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
+				.notNullable();
+			table.integer('timePeriodValue', 3).notNullable();
 			table
 				.boolean('active')
 				.notNullable()

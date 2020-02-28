@@ -5,8 +5,8 @@ import HttpException from '../utils/HttpException';
 import { loggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import { validationResult, body } from 'express-validator';
-// import TaskModel from '../Models/TaskModel';
 import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
+import TaskModel from '../Models/TaskModel';
 
 export const getAll: RequestHandler = async (req, res, next) => {
 	logger.debug(
@@ -27,7 +27,7 @@ export const create: RequestHandler[] = [
 		.toInt(),
 	body('title')
 		.isString()
-		.withMessage('That is not correct value for title')
+		.withMessage('That is not correct value for title.')
 		.if((value: any) => typeof value == 'string')
 		.trim()
 		.isLength({ min: 2 })
@@ -35,25 +35,33 @@ export const create: RequestHandler[] = [
 		.isLength({ max: 50 })
 		.withMessage('Name cannot be more than 50 chars long.'),
 	body('description')
-		.if((value: any) => typeof value === 'string' && value.length > 0)
+		.optional({ nullable: true })
+		.isString()
+		.withMessage('That is not correct value for description.')
 		.trim()
 		.isLength({ max: 500 })
 		.withMessage('Description cannot be more than 500 chars long.'),
-	body('timePeriodUnit').isIn(Object.keys(TaskPeriodUnit)),
+	body('timePeriodUnit')
+		.isString()
+		.withMessage('That is not correct value for Time Period Unit.')
+		.isIn(Object.keys(TaskPeriodUnit)),
 	body('timePeriodValue')
-		.isInt({ max: 999, min: 1 })
+		.not()
+		.isString()
+		.withMessage('That is not correct value for Time Period Value.')
+		.isInt({ max: 999, min: 1, allow_leading_zeroes: false })
+		.withMessage('Time Period Value must be integer between 1 nad 999.')
 		.toInt(),
 	body('startDate')
-		.isISO8601()
-		.withMessage('Invalid date'),
+		.isISO8601({ strict: true })
+		.withMessage('Invalid date, not an ISO 8601 date format.'),
 	body('endDate')
-		// .isISO8601()
-		.withMessage('Invalid date')
+		.isISO8601({ strict: true })
+		.withMessage('Invalid date, not an ISO 8601 date format.')
 		.custom((value: string, { req }) => {
-			if (Date.parse(value) < Date.parse(req.body.startDate)) {
-				throw new Error('End Date must be later then Start Date');
-			}
-		}),
+			return !(Date.parse(value) < Date.parse(req.body.startDate));
+		})
+		.withMessage('End Date must be later then Start Date'),
 	async (req, res, next) => {
 		const signedIdUserId = loggedUserId(req);
 		logger.debug(
@@ -75,36 +83,33 @@ export const create: RequestHandler[] = [
 			);
 		}
 
-		res.status(HttpStatus.CREATED).json(req.body);
+		let {
+			title,
+			description,
+			startDate,
+			endDate,
+			flatId,
+			timePeriodUnit,
+			timePeriodValue
+		} = req.body as TaskModel;
 
-		// let {
-		// 	title,
-		// 	description,
-		// 	startDate,
-		// 	endDate,
-		// 	flatId,
-		// 	timePeriodUnit,
-		// 	timePeriodValue,
-		// } = req.body as TaskModel;
+		try {
+			const createdFlat = await TaskData.create(
+				new TaskModel({
+					title,
+					description,
+					startDate,
+					endDate,
+					flatId,
+					timePeriodUnit,
+					timePeriodValue
+				}),
+				signedIdUserId
+			);
 
-		// try {
-		// 	const createdFlat = null
-		// 	await TaskData.create(
-		// 		new TaskModel({
-		// 			title,
-		// 			description,
-		// 			startDate,
-		// 			endDate,
-		// 			flatId,
-		// 			timePeriodUnit,
-		// 			timePeriodValue
-		// 		}),
-		// 		signedIdUserId
-		// 	);
-
-		// 	res.status(HttpStatus.CREATED).json(createdFlat);
-		// } catch (err) {
-		// 	next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-		// }
+			res.status(HttpStatus.CREATED).json(createdFlat);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
 	}
 ];
