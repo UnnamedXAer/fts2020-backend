@@ -1,7 +1,8 @@
 import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
+import { TaskMemberModel } from './TaskMemberModel';
 
 export default class TaskModel {
-	id?: number | undefined;
+	id?: number;
 	flatId?: number;
 	title?: string;
 	description?: string;
@@ -10,7 +11,7 @@ export default class TaskModel {
 	timePeriodUnit?: TaskPeriodUnit;
 	timePeriodValue?: number;
 	active?: boolean;
-	members?: number[];
+	members?: TaskMemberModel[];
 	createBy?: number;
 	createAt?: Date;
 

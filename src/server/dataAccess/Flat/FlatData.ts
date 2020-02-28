@@ -1,7 +1,11 @@
 import FlatModel from '../../Models/FlatModel';
 import knex from '../../../db';
 import logger from '../../../logger';
-import { FlatRow, FlatMemberRow } from '../../CustomTypes/DbTypes';
+import {
+	FlatRow,
+	FlatMembersRow,
+	MembersForFlatRow
+} from '../../CustomTypes/DbTypes';
 
 class FlatData {
 	static async getById(id: number) {
@@ -43,7 +47,8 @@ class FlatData {
 			const flats = [];
 			for (let i = 0; i < results.length; i++) {
 				const flat = results[i];
-				const membersResults: { userId: number }[] = await knex(
+
+				const membersResults: MembersForFlatRow[] = await knex(
 					'flatMembers'
 				)
 					.select('userId')
@@ -124,7 +129,7 @@ class FlatData {
 					createBy: flatRow.createBy
 				});
 
-				const memberData: FlatMemberRow = {
+				const memberData: FlatMembersRow = {
 					flatId: createdFlat.id!,
 					addedBy: loggedUserId,
 					userId: loggedUserId,
@@ -137,7 +142,7 @@ class FlatData {
 
 				return createdFlat;
 			});
-			
+
 			logger.debug('[FlatData].create flat: %o', createdFlat);
 			return createdFlat;
 		} catch (err) {
@@ -174,13 +179,13 @@ class FlatData {
 
 	static async getMembers(flatId: number) {
 		try {
-			const results: { userId: number }[] = await knex('flatMembers')
+			const results: MembersForFlatRow[] = await knex('flatMembers')
 				.select('userId')
 				.where({ flatId });
 
 			const existingMembers = results.map(x => x.userId);
 			logger.debug(
-				'[FlatData].getMembers existing members for: %s are: %o',
+				'[FlatData].getMembers existing members for flat: %s are: %o',
 				flatId,
 				existingMembers
 			);
@@ -205,7 +210,7 @@ class FlatData {
 			const insertDate = new Date();
 			const membersData = notIncludedMembers.map(
 				x =>
-					<FlatMemberRow>{
+					<FlatMembersRow>{
 						userId: x,
 						flatId,
 						addedAt: insertDate,
@@ -244,10 +249,10 @@ class FlatData {
 		signedInUserId: number
 	) {
 		try {
-			const membersToDelete: [number, number ][] = [];
+			const membersToDelete: [number, number][] = [];
 			members.forEach(x => {
 				if (x != signedInUserId) {
-					membersToDelete.push([x, flatId ]);
+					membersToDelete.push([x, flatId]);
 				}
 			});
 

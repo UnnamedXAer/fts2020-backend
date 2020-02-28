@@ -3,23 +3,23 @@ import { TaskPeriodUnit } from './TaskTypes';
 export type Provider = 'local' | 'google';
 
 export interface UserRow {
-    id?: number;
-    emailAddress: string;
-    userName: string;
-    password?: string;
-    provider: Provider;
-    joinDate: Date;
-    lastModDate?: Date;
-    avatarUrl?: string;
-    active: boolean;
+	id?: number;
+	emailAddress: string;
+	userName: string;
+	password?: string;
+	provider: Provider;
+	joinDate: Date;
+	lastModDate?: Date;
+	avatarUrl?: string;
+	active: boolean;
 }
 
 export interface LogRow {
-    id: number;
-    txt: string;
-    createAt: Date;
-    createBy: number;
-    source: string;
+	id: number;
+	txt: string;
+	createAt: Date;
+	createBy: number;
+	source: string;
 }
 
 export interface TaskRow {
@@ -55,7 +55,7 @@ export interface FlatRow {
 	lastModAt: Date;
 }
 
-export interface FlatMemberRow {
+export interface FlatMembersRow {
 	id?: number;
 	flatId: number;
 	userId: number;
@@ -63,13 +63,22 @@ export interface FlatMemberRow {
 	addedBy: number;
 }
 
+export type MembersForFlatRow = {
+	userId: number;
+};
+
 export interface TaskMembersRow {
 	id?: number;
-	flatId: number;
+	taskId: number;
 	userId: number;
 	position: number;
 	addedAt: Date;
 	addedBy: number;
+}
+
+export type MembersForTaskRow = {
+	userId: number;
+	position: number;
 }
 
 export interface TaskPeriodsRow {

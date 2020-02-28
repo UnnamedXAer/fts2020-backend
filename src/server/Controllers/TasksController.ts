@@ -7,6 +7,7 @@ import logger from '../../logger';
 import { validationResult, body } from 'express-validator';
 import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
 import TaskModel from '../Models/TaskModel';
+import FlatData from '../DataAccess/Flat/FlatData';
 
 export const getAll: RequestHandler = async (req, res, next) => {
 	logger.debug(
@@ -113,3 +114,41 @@ export const create: RequestHandler[] = [
 		}
 	}
 ];
+
+export const deleteTask: RequestHandler = async (req, res, next) => {
+	const { id } = req.params;
+	const signedInUserId = loggedUserId(req);
+	logger.debug(
+		'[DELETE] /tasks/%s user (%s) try to delete task',
+		id,
+		signedInUserId
+	);
+
+	const idAsNum = parseInt(id, 10);
+	if (+id !== idAsNum) {
+		return next(
+			new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+		);
+	}
+
+	try {
+		const task = await TaskData.getById(idAsNum);
+		if (task) {
+			if (
+				!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!) && task.createBy === idAsNum )
+			) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this flat.'
+					)
+				);
+			}
+		}
+
+		await TaskData.delete(idAsNum, signedInUserId);
+		res.sendStatus(HttpStatus.OK);
+	} catch (err) {
+		next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+	}
+};

@@ -1,27 +1,49 @@
 import knex from '../../../db';
-import { TaskRow } from '../../CustomTypes/DbTypes';
-import TaskModel from '../../Models/TaskModel';
 import logger from '../../../logger';
+import {
+	TaskRow,
+	TaskMembersRow
+} from '../../CustomTypes/DbTypes';
+import TaskModel from '../../Models/TaskModel';
+import { TaskMemberModel } from '../../Models/TaskMemberModel';
 
 class TaskData {
 	static async getAll() {
 		try {
 			const results: TaskRow[] = await knex('task').select('*');
 
-			const tasks = results.map(async row => {
-				const membersResults: number[][] = await knex('taskMembers')
-					.select('userId')
-					.where({ taskId: row.id });
+			const tasks = [];
+			for (let i = 0; i < results.length; i++) {
+				const taskRow = results[i];
+				const membersResults = await this.getMembers(taskRow.id);
+				const task = this.mapTaskDataToModel(taskRow, membersResults);
+				logger.silly('[TaskData].getAll Task: %o', task);
+				tasks.push(task);
+			}
 
-				const task = this.mapTaskDataToModel(row, membersResults[0]);
-
-				logger.debug('Task: %o', task);
-				return task;
-			});
-			logger.debug('[TaskData].getAll TasksCnt: %s', tasks.length);
+			logger.debug('[TaskData].getAll Tasks Count: %s', tasks.length);
 			return tasks;
 		} catch (err) {
 			logger.debug('[TaskData].getAll error: %o', err);
+			throw err;
+		}
+	}
+
+	static async getById(id: number) {
+		try {
+			const results: TaskRow[] = await knex('task')
+				.select('*')
+				.where({ id });
+
+			let task = null;
+			if (results.length > 0) {
+				const membersResults = await this.getMembers(id);
+				task = this.mapTaskDataToModel(results[0], membersResults);
+			}
+
+			logger.debug('[TaskData].getById given id: %s, Task: %s', id, task);
+			return task;
+		} catch (err) {
 			throw err;
 		}
 	}
@@ -33,16 +55,19 @@ class TaskData {
 				.where({ flatId: id });
 
 			const tasks = results.map(async row => {
-				const membersResults: number[][] = await knex('taskMembers')
-					.select('userId')
-					.where({ taskId: row.id });
-
-				const task = this.mapTaskDataToModel(row, membersResults[0]);
-
-				logger.debug('Task: %o', task);
+				const membersResults = await this.getMembers(id);
+				const task = this.mapTaskDataToModel(row, membersResults);
+				logger.silly(
+					'[TaskData].getByFlatId FlatId: %s, Task: %o',
+					task
+				);
 				return task;
 			});
-			logger.debug('FlatId: %s, TasksCnt: %s', id, tasks.length);
+			logger.debug(
+				'[TaskData].getByFlatId FlatId: %s, Tasks Count: %s',
+				id,
+				tasks.length
+			);
 			return tasks;
 		} catch (err) {
 			throw err;
@@ -68,7 +93,7 @@ class TaskData {
 		} as TaskRow;
 
 		try {
-			const createdTask = knex.transaction(async trx => {
+			const createdTask = await knex.transaction(async trx => {
 				const results: TaskRow[] = await trx('task')
 					.insert(taskData)
 					.returning('*');
@@ -77,15 +102,105 @@ class TaskData {
 				return createdTask;
 			});
 
-			logger.debug('[FlatData].create flat: %o', createdTask);
+			logger.debug('[TaskData].create flat: %o', createdTask);
 			return createdTask;
 		} catch (err) {
-			logger.debug('[Task].create error: %o', err);
+			logger.debug('[TaskData].create error: %o', err);
 			throw err;
 		}
 	}
 
-	private static mapTaskDataToModel(row: TaskRow, members?: number[]) {
+	static async delete(id: number, userId: number) {
+		try {
+			let results = await knex.transaction(async trx => {
+				await trx('taskMembers')
+					.delete()
+					.where({ taskId: id });
+
+				const deletedTasksCountResults = await trx('task')
+					.delete()
+					.where({ id });
+
+				return deletedTasksCountResults;
+			});
+
+			logger.debug(
+				'[TaskData].delete task: %s delete by: %s, deleted tasks count: %s',
+				id,
+				userId,
+				results
+			);
+
+			return results;
+		} catch (err) {
+			logger.debug('[TaskData].delete error: %o', err);
+			throw err;
+		}
+	}
+
+	static async getMembers(taskId: number) {
+		try {
+			const results: TaskMembersRow[] = await knex('taskMembers')
+				.select('userId', 'position')
+				.where({ taskId });
+
+			const members = results.map(
+				x => <TaskMemberModel>{ userId: x.userId, position: x.position }
+			);
+			logger.debug(
+				'[TaskData].getMembers existing members for task: %s are: %o',
+				taskId,
+				members
+			);
+			return members;
+		} catch (err) {
+			logger.debug('[TaskData].getMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async setMembers(
+		taskId: number,
+		members: TaskMemberModel[],
+		signedInUserId: number
+	) {
+		try {
+			const insertDate = new Date();
+			const membersData = members.map(
+				x =>
+					<TaskMembersRow>{
+						userId: x.userId,
+						taskId,
+						addedAt: insertDate,
+						addedBy: signedInUserId,
+						position: x.position
+					}
+			);
+
+			const results: TaskMembersRow[] | {} = await knex('taskMembers')
+				.insert(membersData)
+				.returning(['userId', 'position']);
+
+			let addedMembers: TaskMembersRow[];
+			if (Array.isArray(results)) {
+				addedMembers = results;
+			} else {
+				addedMembers = [];
+			}
+			logger.debug(
+				'[TaskData].addMembers added members for: %s are: %o',
+				taskId,
+				addedMembers
+			);
+
+			return addedMembers;
+		} catch (err) {
+			logger.debug('[FlatData].addMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	private static mapTaskDataToModel(row: TaskRow, members: TaskMemberModel[] = []) {
 		return new TaskModel({
 			id: row.id,
 			flatId: row.flatId,
