@@ -8,6 +8,6 @@ router.get('/', getAll);
 router.post('/', create);
 router.delete('/:id', deleteTask);
 
-router.patch('/:id/members', setMembers)
+router.put('/:id/members', setMembers)
 
 export default router;

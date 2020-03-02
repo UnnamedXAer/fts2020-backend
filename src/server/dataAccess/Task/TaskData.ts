@@ -1,9 +1,6 @@
 import knex from '../../../db';
 import logger from '../../../logger';
-import {
-	TaskRow,
-	TaskMembersRow
-} from '../../CustomTypes/DbTypes';
+import { TaskRow, TaskMembersRow } from '../../CustomTypes/DbTypes';
 import TaskModel from '../../Models/TaskModel';
 import { TaskMemberModel } from '../../Models/TaskMemberModel';
 
@@ -177,6 +174,10 @@ class TaskData {
 					}
 			);
 
+			await knex('taskMembers')
+				.delete()
+				.where({ taskId });
+
 			const results: TaskMembersRow[] | {} = await knex('taskMembers')
 				.insert(membersData)
 				.returning(['userId', 'position']);
@@ -200,7 +201,10 @@ class TaskData {
 		}
 	}
 
-	private static mapTaskDataToModel(row: TaskRow, members: TaskMemberModel[] = []) {
+	private static mapTaskDataToModel(
+		row: TaskRow,
+		members: TaskMemberModel[] = []
+	) {
 		return new TaskModel({
 			id: row.id,
 			flatId: row.flatId,

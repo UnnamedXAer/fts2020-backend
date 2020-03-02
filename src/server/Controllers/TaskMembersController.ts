@@ -7,29 +7,37 @@ import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
 import TaskData from '../DataAccess/Task/TaskData';
 import { TaskMemberModel } from '../Models/TaskMemberModel';
+import TaskModel from '../Models/TaskModel';
 
 export const setMembers: RequestHandler[] = [
 	body('members')
 		.isArray()
-		.withMessage('That are not correct values for members.')
+		.withMessage(
+			'That are not correct values for members - expected an array of objects with user id and position.'
+		)
+		.if((value: any) => Array.isArray(value))
 		.custom((value: []) => value.length <= 100)
-		.withMessage('Exceeded max members count (100)')
+		.withMessage('Exceeded max members payload count (100).')
 		.custom((value: []) => {
 			const everyOutput = value.every(x => {
-				const { userId, position } = x;
-				const output =
-					Number.isInteger(userId) &&
-					userId > 0 &&
-					Number.isInteger(position) &&
-					position > 0;
-				return output;
+				if (x && typeof x === 'object') {
+					const { userId, position } = x;
+					const output =
+						Number.isInteger(userId) &&
+						userId > 0 &&
+						Number.isInteger(position) &&
+						position > 0;
+					return output;
+				}
+				return false;
 			});
 			return everyOutput;
 		})
 		.withMessage(
-			'That are not correct values for members - not an array objects with user id and position.'
+			'That are not correct values for members - expected an array objects of with user id and position.'
 		),
 	async (req, res, next) => {
+		let task: TaskModel | null;
 		const id = req.params.id;
 		const members: TaskMemberModel[] = req.body.members;
 		const signedInUserId = loggedUserId(req);
@@ -48,7 +56,7 @@ export const setMembers: RequestHandler[] = [
 		}
 
 		try {
-			const task = await TaskData.getById(idAsNum);
+			task = await TaskData.getById(idAsNum);
 			if (
 				!task ||
 				!(
@@ -84,6 +92,21 @@ export const setMembers: RequestHandler[] = [
 		}
 
 		try {
+			const flatMembers = await FlatData.getMembers(task.flatId!);
+
+			const areAllFlatMembers = members.every(x =>
+				flatMembers.includes(x.userId as number)
+			);
+
+			if (!areAllFlatMembers) {
+				return next(
+					new HttpException(
+						HttpStatus.UNPROCESSABLE_ENTITY,
+						'Not all users are members of given flat.'
+					)
+				);
+			}
+
 			const updatedMembers = await TaskData.setMembers(
 				idAsNum,
 				members,
