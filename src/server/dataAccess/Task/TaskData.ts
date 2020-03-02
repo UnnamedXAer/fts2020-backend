@@ -1,8 +1,13 @@
 import knex from '../../../db';
 import logger from '../../../logger';
-import { TaskRow, TaskMembersRow } from '../../CustomTypes/DbTypes';
+import {
+	TaskRow,
+	TaskMembersRow,
+	TaskPeriodsRow
+} from '../../CustomTypes/DbTypes';
 import TaskModel from '../../Models/TaskModel';
 import { TaskMemberModel } from '../../Models/TaskMemberModel';
+import TaskPeriodModel from '../../Models/TaskPeriodModel';
 
 class TaskData {
 	static async getAll() {
@@ -189,12 +194,48 @@ class TaskData {
 				addedMembers = [];
 			}
 			logger.debug(
-				'[TaskData].addMembers added members for: %s are: %o',
+				'[TaskData].setMembers current members for: %s are: %o',
 				taskId,
 				addedMembers
 			);
 
 			return addedMembers;
+		} catch (err) {
+			logger.debug('[TaskData].setMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async addTaskPeriods(taskPeriods: TaskPeriodModel[]) {
+
+		const periodsData = taskPeriods.map(x => {
+			return <TaskPeriodsRow>{
+				taskId: x.taskId,
+				assignedTo: x.assignedTo,
+				startDate: x.startDate,
+				endDate: x.endDate
+			};
+		});
+
+		try {
+			const results = (await knex('taskPeriods')
+				.insert(periodsData)
+				.returning('*')) as TaskPeriodsRow[];
+
+			const currentTaskPeriods = results.map(
+				x =>
+					new TaskPeriodModel({
+						id: x.id,
+						taskId: x.taskId,
+						assignedTo: x.assignedTo,
+						startDate: x.startDate,
+						endDate: x.endDate,
+						completedAt: x.completedAt,
+						completedBy: x.completedBy
+					})
+			);
+
+			return currentTaskPeriods;
 		} catch (err) {
 			logger.debug('[FlatData].addMembers error: %o', err);
 			throw err;

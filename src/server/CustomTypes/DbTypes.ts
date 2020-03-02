@@ -82,11 +82,11 @@ export type MembersForTaskRow = {
 }
 
 export interface TaskPeriodsRow {
-	id: number;
+	id?: number;
 	taskId: number;
 	startDate: Date;
 	endDate: Date;
 	assignedTo: number;
-	completedBy: number | undefined;
-	completedAt: Date | undefined;
+	completedBy?: number;
+	completedAt?: Date;
 }
