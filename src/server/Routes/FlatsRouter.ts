@@ -7,7 +7,7 @@ router.get('/', getFlats);
 router.post('/', create);
 router.delete('/:id', deleteFlat);
 
-router.put('/:id/members', addMembers);
+router.patch('/:id/members', addMembers);
 router.delete('/:id/members', deleteMembers);
 
 export default router;
