@@ -43,7 +43,7 @@ class TaskData {
 				task = this.mapTaskDataToModel(results[0], membersResults);
 			}
 
-			logger.debug('[TaskData].getById given id: %s, Task: %s', id, task);
+			logger.debug('[TaskData].getById given id: %s, Task: %o', id, task);
 			return task;
 		} catch (err) {
 			throw err;
@@ -206,11 +206,44 @@ class TaskData {
 		}
 	}
 
-	static async addTaskPeriods(taskPeriods: TaskPeriodModel[]) {
+	static async getTaskPeriodById(id: number) {
+		try {
+			const results: TaskPeriodsRow[] = await knex('taskPeriods')
+				.select('*')
+				.where({ id });
 
+			const row = results[0];
+			const taskPeriod = row
+				? new TaskPeriodModel({
+						id: row.id,
+						taskId: row.taskId,
+						assignedTo: row.assignedTo,
+						startDate: row.startDate,
+						endDate: row.endDate,
+						completedAt: row.completedAt,
+						completedBy: row.completedBy
+				  })
+				: null;
+
+			logger.debug(
+				'[TaskData].getTaskPeriodById task period for id: %s is: %o',
+				id,
+				taskPeriod
+			);
+			return taskPeriod;
+		} catch (err) {
+			logger.debug('[TaskData].getTaskPeriodById error: %o', err);
+			throw err;
+		}
+	}
+
+	static async addTaskPeriods(
+		taskPeriods: TaskPeriodModel[],
+		taskId: number
+	) {
 		const periodsData = taskPeriods.map(x => {
 			return <TaskPeriodsRow>{
-				taskId: x.taskId,
+				taskId: taskId,
 				assignedTo: x.assignedTo,
 				startDate: x.startDate,
 				endDate: x.endDate
@@ -226,6 +259,36 @@ class TaskData {
 				x =>
 					new TaskPeriodModel({
 						id: x.id,
+						taskId: taskId,
+						assignedTo: x.assignedTo,
+						startDate: x.startDate,
+						endDate: x.endDate,
+						completedAt: x.completedAt,
+						completedBy: x.completedBy
+					})
+			);
+			logger.debug(
+				'[TaskData].addTaskPeriods current periods for: %s are: %o',
+				taskId,
+				currentTaskPeriods
+			);
+			return currentTaskPeriods;
+		} catch (err) {
+			logger.debug('[TaskData].addMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async getTaskPeriodsByTaskId(taskId: number) {
+		try {
+			const results = (await knex('taskPeriods')
+				.select('*')
+				.where({ taskId })) as TaskPeriodsRow[];
+
+			const taskPeriods = results.map(
+				x =>
+					new TaskPeriodModel({
+						id: x.id,
 						taskId: x.taskId,
 						assignedTo: x.assignedTo,
 						startDate: x.startDate,
@@ -235,9 +298,48 @@ class TaskData {
 					})
 			);
 
-			return currentTaskPeriods;
+			logger.debug(
+				'[TaskData].getTaskPeriods current periods for: %s are: %o',
+				taskId,
+				taskPeriods
+			);
+			return taskPeriods;
 		} catch (err) {
-			logger.debug('[FlatData].addMembers error: %o', err);
+			logger.debug('[TaskData].getTaskPeriods error: %o', err);
+			throw err;
+		}
+	}
+
+	static async completeTaskPeriod(id: number, signedInUserId: number) {
+		const updateDate = new Date();
+		try {
+			const results: TaskPeriodsRow[] = await knex('taskPeriods')
+				.update({
+					completedBy: signedInUserId,
+					completedAt: updateDate
+				} as TaskPeriodsRow)
+				.where({ id })
+				.returning('*');
+
+			const row = results[0];
+			const taskPeriod = new TaskPeriodModel({
+				id: row.id,
+				taskId: row.taskId,
+				assignedTo: row.assignedTo,
+				startDate: row.startDate,
+				endDate: row.endDate,
+				completedAt: row.completedAt,
+				completedBy: row.completedBy
+			});
+
+			logger.debug(
+				'[TaskData].getTaskPeriods completed period: %o',
+				taskPeriod
+			);
+
+			return taskPeriod;
+		} catch (err) {
+			logger.debug('[TaskData].completeTaskPeriod error: %o', err);
 			throw err;
 		}
 	}

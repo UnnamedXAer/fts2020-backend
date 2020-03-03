@@ -63,7 +63,7 @@ export const setMembers: RequestHandler[] = [
 					(await FlatData.isUserFlatOwner(
 						signedInUserId,
 						task.flatId!
-					)) && task.createBy === idAsNum
+					)) && task.createBy === signedInUserId
 				)
 			) {
 				return next(
