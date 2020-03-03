@@ -1,6 +1,7 @@
 require('dotenv').config();
 import logger from '../logger';
 import express, { Request, Response, NextFunction } from 'express';
+require('express-async-errors');
 import createError from 'http-errors';
 import session from 'express-session';
 import cors from 'cors';
