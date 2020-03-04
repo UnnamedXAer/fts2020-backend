@@ -10,7 +10,10 @@ export default function errorMiddleware(
 	_next: NextFunction
 ) {
 	const env = process.env.NODE_ENV;
-	const status = err.statusCode || res.statusCode || 500;
+	const status =
+		err.statusCode ||
+		(res.statusCode && res.statusCode >= 400 ? res.statusCode : void 0) ||
+		500;
 	const message =
 		env === 'production' && status === 500
 			? 'Something went wrong'
@@ -38,8 +41,7 @@ export default function errorMiddleware(
 				req.url,
 				JSON.stringify(logData)
 			);
-		}
-		else {
+		} else {
 			logger.warn(
 				'[%s] %s %O',
 				req.method,
