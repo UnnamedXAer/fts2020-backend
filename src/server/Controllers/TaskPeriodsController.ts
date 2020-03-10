@@ -7,6 +7,7 @@ import TaskPeriodModel from '../Models/TaskPeriodModel';
 import HttpException from '../utils/HttpException';
 import { loggedUserId } from '../utils/authUser';
 import { updateDates } from '../utils/TaskTimePeriod';
+import { body, validationResult } from 'express-validator';
 
 export const generatePeriods: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['id'];
@@ -17,13 +18,15 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 	const taskId = parseInt(_taskId, 10);
 	if (+_taskId !== taskId) {
 		return next(
-			new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+			new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
 		);
 	}
 
 	try {
 		task = await TaskData.getById(taskId);
-		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(taskId);
+		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
+			taskId
+		);
 		periodsAlreadyGenerated = existingTaskPeriods.length > 0;
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
@@ -37,8 +40,20 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 		return next(
 			new HttpException(
 				HttpStatus.UNAUTHORIZED,
-				'Unauthorized access - You do not have permissions to maintain this task.'
+				'Unauthorized access - You do not have permissions to maintain this task period.'
 			)
+		);
+	}
+
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		let errorsArray = errors
+			.array()
+			.map(x => ({ msg: x.msg, param: x.param }));
+		return next(
+			new HttpException(422, 'Not all conditions are fulfilled', {
+				errorsArray
+			})
 		);
 	}
 
@@ -111,7 +126,7 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	const taskId = parseInt(_taskId, 10);
 	if (+_taskId !== taskId) {
 		return next(
-			new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+			new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
 		);
 	}
 
@@ -135,7 +150,9 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	}
 
 	try {
-		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(taskId);
+		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
+			taskId
+		);
 		res.status(HttpStatus.OK).json(existingTaskPeriods);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
@@ -145,25 +162,30 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['id'];
 	let task: TaskModel | null;
+	let period: TaskPeriodModel | null;
 	const signedInUserId = loggedUserId(req);
 	const _periodId = req.params['periodId'];
 
 	const periodId = parseInt(_periodId, 10);
-
 	const taskId = parseInt(_taskId, 10);
 	if (+_taskId !== taskId || +_periodId !== periodId) {
 		return next(
-			new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+			new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
 		);
 	}
 
 	try {
 		task = await TaskData.getById(taskId);
+		period = await TaskData.getTaskPeriodById(periodId);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
 
-	if (!task?.members!.find(x => x.userId === signedInUserId)) {
+	if (
+		!task?.members?.find(x => x.userId === signedInUserId) ||
+		!period ||
+		period.taskId !== taskId
+	) {
 		return next(
 			new HttpException(
 				HttpStatus.UNAUTHORIZED,
@@ -172,13 +194,105 @@ export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 		);
 	}
 
-	try {
-		const period = await TaskData.completeTaskPeriod(
-			periodId,
-			signedInUserId
+	if (period.completedBy) {
+		return next(
+			new HttpException(
+				HttpStatus.CONFLICT,
+				'Task Period already completed.'
+			)
 		);
-		res.status(200).json(period);
+	}
+
+	const periodPart = new TaskPeriodModel({
+		completedBy: signedInUserId,
+		id: periodId
+	});
+
+	try {
+		const updatedPeriod = await TaskData.updateTaskPeriod(periodPart);
+		res.status(200).json(updatedPeriod);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
 };
+
+export const reassignTaskPeriod: RequestHandler[] = [
+	body('assignTo')
+		.exists()
+		.withMessage('Assigned person id is required.')
+		.custom((value: any) => {
+			return +value === parseInt(value, 10);
+		})
+		.withMessage('Wrong parameter value'),
+	async (req, res, next) => {
+		const _taskId = req.params['id'];
+		const _periodId = req.params['periodId'];
+		const assignTo = +req.body.assignTo;
+		const signedInUserId = loggedUserId(req);
+		let task: TaskModel | null;
+		let period: TaskPeriodModel | null;
+
+		const periodId = parseInt(_periodId, 10);
+
+		const taskId = parseInt(_taskId, 10);
+		if (+_taskId !== taskId || +_periodId !== periodId) {
+			return next(
+				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
+			);
+		}
+
+		try {
+			task = await TaskData.getById(taskId);
+			period = await TaskData.getTaskPeriodById(periodId);
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+
+		if (
+			!task?.members?.find(x => x.userId === signedInUserId) ||
+			!period ||
+			period.taskId !== taskId
+		) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to maintain this task period.'
+				)
+			);
+		}
+
+		if (period.completedBy) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'Task Period already completed.'
+				)
+			);
+		}
+
+		if (task.members.every(x => x.userId !== assignTo)) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'Task Period cannot be assigned to person which is not member of the task.'
+				)
+			);
+		}
+
+		const periodPart = new TaskPeriodModel({
+			assignedTo: assignTo,
+			id: periodId
+		});
+
+		try {
+			const updatedPeriod = await TaskData.updateTaskPeriod(periodPart);
+			res.status(200).json(updatedPeriod);
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+	}
+];

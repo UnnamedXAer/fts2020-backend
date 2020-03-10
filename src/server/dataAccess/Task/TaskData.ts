@@ -310,15 +310,19 @@ class TaskData {
 		}
 	}
 
-	static async completeTaskPeriod(id: number, signedInUserId: number) {
+	static async updateTaskPeriod(period: TaskPeriodModel) {
 		const updateDate = new Date();
+
+		const updateData: TaskPeriodsRow = {
+			assignedTo: period.assignedTo,
+			completedAt: period.completedBy ? updateDate : void 0,
+			completedBy: period.completedBy
+		};
+
 		try {
 			const results: TaskPeriodsRow[] = await knex('taskPeriods')
-				.update({
-					completedBy: signedInUserId,
-					completedAt: updateDate
-				} as TaskPeriodsRow)
-				.where({ id })
+				.update(updateData)
+				.where({ id: period.id })
 				.returning('*');
 
 			const row = results[0];
@@ -333,7 +337,7 @@ class TaskData {
 			});
 
 			logger.debug(
-				'[TaskData].getTaskPeriods completed period: %o',
+				'[TaskData].updatedTaskPeriod updated period: %o',
 				taskPeriod
 			);
 
