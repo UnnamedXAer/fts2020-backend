@@ -53,7 +53,7 @@ export default function errorMiddleware(
 	const resObj = {
 		message,
 		status,
-		data
+		...data
 	};
 	res.status(status).send(resObj);
 }
