@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { getById } from '../Controllers/UsersController';
+import { getById, getByEmailAddress } from '../Controllers/UsersController';
 const router = Router();
 
 router.get('/:id', getById);
+router.post('/emailAddress', getByEmailAddress);
 
 export default router;

@@ -9,7 +9,8 @@ const router = Router();
 
 router.use('/auth', authRouter);
 router.use('/logs', logsRouter);
-router.use('/users', ensureAuthenticated, usersRouter);
+// router.use('/users', ensureAuthenticated, usersRouter);
+router.use('/users', usersRouter);
 router.use('/flats', ensureAuthenticated, flatsRouter);
 router.use('/tasks', ensureAuthenticated, tasksRouter);
 
