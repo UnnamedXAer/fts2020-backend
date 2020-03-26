@@ -99,6 +99,36 @@ class FlatData {
 		}
 	}
 
+	static async getByMember(userId: number) {
+		try {
+			const results: FlatRow[] = await knex('flat')
+				.select(
+					// 'flat.id, flat.name, flat.description, flat.createBy, flat.createAt, flat.lastModBy, flat.lastModAt'
+					'flat.*'
+				)
+				.join('flatMembers', 'flat.id', '=', 'flatMembers.flatId')
+				.where({ userId });
+			const flats = results.map(async flat => {
+				const membersResults: number[] = await this.getMembers(flat.id);
+
+				return new FlatModel({
+					id: flat.id,
+					name: flat.name,
+					description: flat.description,
+					createBy: flat.createBy,
+					createAt: flat.createAt,
+					members: membersResults
+				});
+			});
+
+			logger.debug('[FlatData].getByMember flatCnt: %s', flats.length);
+			return flats;
+		} catch (err) {
+			logger.debug('[FlatData].getByMember error: %o', err);
+			throw err;
+		}
+	}
+
 	static async create(
 		flat: FlatModel,
 		loggedUserId: number

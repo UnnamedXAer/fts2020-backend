@@ -31,26 +31,26 @@ export const addMembers: RequestHandler[] = [
 			'That are not correct values for members - not an array of positive integers.'
 		),
 	async (req, res, next) => {
-		const id = req.params.id;
+		const flatId = req.params.flatId;
 		const members: number[] = req.body.members;
 		const signedInUserId = loggedUserId(req);
 		logger.debug(
 			'[PATCH] /flats/%s/members user (%s) try to add members: %o from flat: %s',
-			id,
+			flatId,
 			signedInUserId,
 			members,
-			id
+			flatId
 		);
 
-		const idAsNum = parseInt(id, 10);
-		if (+id !== idAsNum) {
+		const flatIdAsNum = parseInt(flatId, 10);
+		if (+flatId !== flatIdAsNum) {
 			return next(
 				new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
 			);
 		}
 
 		try {
-			if (!(await FlatData.isUserFlatOwner(signedInUserId, idAsNum))) {
+			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
@@ -78,7 +78,7 @@ export const addMembers: RequestHandler[] = [
 
 		try {
 			const addedMembers = await FlatData.addMembers(
-				idAsNum,
+				flatIdAsNum,
 				members,
 				signedInUserId
 			);
@@ -111,26 +111,26 @@ export const deleteMembers: RequestHandler[] = [
 			'That are not correct values for members - not an array of positive integers.'
 		),
 	async (req, res, next) => {
-		const id = req.params.id;
+		const flatId = req.params.flatId;
 		const members: number[] = req.body.members;
 		const signedInUserId = loggedUserId(req);
 		logger.debug(
 			'[DELETE] /flats/%s/members user (%s) try to delete members: %o from flat: %s',
-			id,
+			flatId,
 			signedInUserId,
 			members,
-			id
+			flatId
 		);
 
-		const idAsNum = parseInt(id, 10);
-		if (+id !== idAsNum) {
+		const flatIdAsNum = parseInt(flatId, 10);
+		if (+flatId !== flatIdAsNum) {
 			return next(
 				new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
 			);
 		}
 
 		try {
-			if (!(await FlatData.isUserFlatOwner(signedInUserId, idAsNum))) {
+			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
@@ -157,7 +157,7 @@ export const deleteMembers: RequestHandler[] = [
 		}
 
 		try {
-			await FlatData.deleteMembers(idAsNum, members, signedInUserId);
+			await FlatData.deleteMembers(flatIdAsNum, members, signedInUserId);
 			res.sendStatus(HttpStatus.OK);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
