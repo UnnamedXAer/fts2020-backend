@@ -7,6 +7,7 @@ import HttpException from '../utils/HttpException';
 import { UserRegisterModel } from '../Models/UserAuthModels';
 import UserModel from '../Models/UserModel';
 import passport from 'passport';
+import { SESSION_DURATION } from '../../config/config';
 
 export const logIn: RequestHandler[] = [
 	check('emailAddress')
@@ -17,7 +18,10 @@ export const logIn: RequestHandler[] = [
 	check('password').exists(),
 	(req, res, next) => {
 		const { emailAddress } = req.body;
-		logger.info('/auth/login: Someone trying to logIn as: %s', emailAddress);
+		logger.info(
+			'/auth/login: Someone trying to logIn as: %s',
+			emailAddress
+		);
 		passport.authenticate('local', {}, (err, user, info) => {
 			if (err) {
 				return next(new HttpException(500, err));
@@ -36,7 +40,7 @@ export const logIn: RequestHandler[] = [
 				if (err) {
 					return next(new HttpException(500, err));
 				}
-				res.status(200).json(user);
+				res.status(200).json({ user, expiresIn: SESSION_DURATION });
 			});
 		})(req, res, next);
 	}
@@ -136,8 +140,7 @@ export const register: RequestHandler[] = [
 				if (err) {
 					return next(new HttpException(500, err));
 				}
-
-				res.status(201).send({ results: user });
+				res.status(201).json({ user, expiresIn: SESSION_DURATION });
 			});
 		})(req, res, next);
 	}
@@ -145,7 +148,10 @@ export const register: RequestHandler[] = [
 
 export const logOut: RequestHandler = (req, res, _) => {
 	const user: UserModel = req.user as UserModel;
-	logger.debug('/auth/logout : User %s is about to logOut', user.emailAddress);
+	logger.debug(
+		'/auth/logout : User %s is about to logOut',
+		user.emailAddress
+	);
 	req.logout();
 	res.sendStatus(200);
 };

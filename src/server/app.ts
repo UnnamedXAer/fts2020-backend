@@ -41,7 +41,7 @@ const expressSession = session({
 	secret: 'tmpSecret',
 	resave: false,
 	saveUninitialized: true,
-	store: store
+	store: store,
 	// cookie: {secure: true}
 });
 
