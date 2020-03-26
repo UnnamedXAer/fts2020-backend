@@ -49,14 +49,14 @@ export const create: RequestHandler[] = [
 				throw new Error(errorMessage);
 			}
 		}),
-	body('address')
+	body('description')
 		.if((value: any) => {
-			console.log('address', value);
+			console.log('description', value);
 			return typeof value === 'string' && value.trim().length > 0;
 		})
 		.trim()
-		.isLength({ max: 200 })
-		.withMessage('Address cannot be more than 200 chars long.'),
+		.isLength({ max: 500 })
+		.withMessage('description cannot be more than 500 chars long.'),
 	body('members')
 		.optional()
 		.isArray()
@@ -96,14 +96,12 @@ export const create: RequestHandler[] = [
 			);
 		}
 
-		let { address, members, name } = req.body as FlatModel;
-		name = name?.trim();
-		address = address?.trim();
+		let { description, members, name } = req.body as FlatModel;
 
 		try {
 			const createdFlat = await FlatData.create(
 				new FlatModel({
-					address,
+					description,
 					members,
 					name
 				}),

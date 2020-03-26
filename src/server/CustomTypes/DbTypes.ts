@@ -48,7 +48,7 @@ export interface TaskTimePeriod {
 export interface FlatRow {
 	id: number;
 	name: string;
-	address: string;
+	description: string;
 	createBy: number;
 	createAt: Date;
 	lastModBy: number;

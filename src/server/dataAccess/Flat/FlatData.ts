@@ -23,7 +23,7 @@ class FlatData {
 				const flat = new FlatModel({
 					id: flatRow.id,
 					name: flatRow.name,
-					address: flatRow.address,
+					description: flatRow.description,
 					createBy: flatRow.createBy,
 					createAt: flatRow.createAt,
 					members: membersResults.map(x => x.userId)
@@ -58,7 +58,7 @@ class FlatData {
 					new FlatModel({
 						id: flat.id,
 						name: flat.name,
-						address: flat.address,
+						description: flat.description,
 						createBy: flat.createBy,
 						createAt: flat.createAt,
 						members: membersResults.map(x => x.userId)
@@ -84,7 +84,7 @@ class FlatData {
 				return new FlatModel({
 					id: flat.id,
 					name: flat.name,
-					address: flat.address,
+					description: flat.description,
 					createBy: flat.createBy,
 					createAt: flat.createAt,
 					members: membersResults
@@ -107,7 +107,7 @@ class FlatData {
 
 		const flatData = {
 			name: flat.name,
-			address: flat.address,
+			description: flat.description,
 			createAt: currentDate,
 			createBy: loggedUserId,
 			lastModAt: currentDate,
@@ -124,7 +124,7 @@ class FlatData {
 				const createdFlat = new FlatModel({
 					id: flatRow.id,
 					name: flatRow.name,
-					address: flatRow.address,
+					description: flatRow.description,
 					createAt: flatRow.createAt,
 					createBy: flatRow.createBy
 				});
