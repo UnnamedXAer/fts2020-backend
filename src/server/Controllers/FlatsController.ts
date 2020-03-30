@@ -3,43 +3,42 @@ import HttpStatus from 'http-status-codes';
 import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
 import FlatModel from '../Models/FlatModel';
-import { body, validationResult, param } from 'express-validator';
+import { body, validationResult, query } from 'express-validator';
 import logger from '../../logger';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 
 export const getFlats: RequestHandler[] = [
-	param('userId')
+	query('userId')
+		.exists().withMessage('Missing userId parameter')
+		.if((value: any) => value !== undefined)
 		.isInt()
 		.toInt(),
 	async (req, res, next) => {
+		const loggedUserId = getLoggedUserId(req);
 		logger.debug(
 			'[GET] /flats/ a user %s try to get all flats: %o',
-			loggedUserId(req)
+			loggedUserId
 		);
-		try {
-			const userId = +req.params.userId;
-			logger.debug(
-				'[POST] /flats/ user (%s) try to create flat: %o',
-				loggedUserId(req),
-				{ ...req.params }
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map(x => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.BAD_REQUEST,
+					'Invalid parameter.',
+					{
+						errorsArray
+					}
+				)
 			);
+		}
 
-			const errors = validationResult(req);
-			if (!errors.isEmpty()) {
-				let errorsArray = errors
-					.array()
-					.map(x => ({ msg: x.msg, param: x.param }));
-				return next(
-					new HttpException(
-						HttpStatus.BAD_REQUEST,
-						'Invalid parameter.',
-						{
-							errorsArray
-						}
-					)
-				);
-			}
+		const userId = req.query.userId;
 
+		try {
 			const flats = await FlatData.getByMember(userId);
 
 			res.status(HttpStatus.OK).send(flats);
@@ -61,7 +60,7 @@ export const create: RequestHandler[] = [
 		.custom(async (value: string, { req }) => {
 			try {
 				const exists = await FlatData.verifyIfMember(
-					loggedUserId(<Request>req),
+					getLoggedUserId(<Request>req),
 					value
 				);
 				if (exists) {
@@ -108,7 +107,7 @@ export const create: RequestHandler[] = [
 	async (req, res, next) => {
 		logger.debug(
 			'[POST] /flats/ user (%s) try to create flat: %o',
-			loggedUserId(req),
+			getLoggedUserId(req),
 			{ ...req.body }
 		);
 
@@ -133,7 +132,7 @@ export const create: RequestHandler[] = [
 					members,
 					name
 				}),
-				loggedUserId(req)
+				getLoggedUserId(req)
 			);
 
 			res.status(HttpStatus.CREATED).json(createdFlat);
@@ -145,7 +144,7 @@ export const create: RequestHandler[] = [
 
 export const deleteFlat: RequestHandler = async (req, res, next) => {
 	const { id } = req.params;
-	const signedInUserId = loggedUserId(req);
+	const signedInUserId = getLoggedUserId(req);
 	logger.debug(
 		'[DELETE] /flats/ user (%s) try to delete flat: %s',
 		signedInUserId,

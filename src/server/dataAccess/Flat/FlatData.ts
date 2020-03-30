@@ -102,13 +102,10 @@ class FlatData {
 	static async getByMember(userId: number) {
 		try {
 			const results: FlatRow[] = await knex('flat')
-				.select(
-					// 'flat.id, flat.name, flat.description, flat.createBy, flat.createAt, flat.lastModBy, flat.lastModAt'
-					'flat.*'
-				)
+				.select('flat.*')
 				.join('flatMembers', 'flat.id', '=', 'flatMembers.flatId')
 				.where({ userId });
-			const flats = results.map(async flat => {
+			const flatsPromises = results.map(async flat => {
 				const membersResults: number[] = await this.getMembers(flat.id);
 
 				return new FlatModel({
@@ -120,6 +117,8 @@ class FlatData {
 					members: membersResults
 				});
 			});
+
+			const flats = await Promise.all(flatsPromises);
 
 			logger.debug('[FlatData].getByMember flatCnt: %s', flats.length);
 			return flats;
@@ -159,14 +158,14 @@ class FlatData {
 					createBy: flatRow.createBy
 				});
 
-				const memberData: FlatMembersRow = {
+				const membersData: FlatMembersRow[] = flat.members!.map(x => ({
 					flatId: createdFlat.id!,
 					addedBy: loggedUserId,
-					userId: loggedUserId,
+					userId: x,
 					addedAt: currentDate
-				};
+				}));
 				const addedMembers = await trx('flatMembers')
-					.insert(memberData)
+					.insert(membersData)
 					.returning('userId');
 				createdFlat.members = addedMembers;
 
