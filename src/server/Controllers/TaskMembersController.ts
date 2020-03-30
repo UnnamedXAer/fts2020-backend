@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
 import { body, validationResult } from 'express-validator';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
@@ -40,7 +40,7 @@ export const setMembers: RequestHandler[] = [
 		let task: TaskModel | null;
 		const id = req.params.id;
 		const members: TaskMemberModel[] = req.body.members;
-		const signedInUserId = loggedUserId(req);
+		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
 			'[PATCH] /tasks/%s/members user (%s) try to set members: %o ',
 			id,

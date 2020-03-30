@@ -5,14 +5,14 @@ import FlatData from '../DataAccess/Flat/FlatData';
 import TaskModel from '../Models/TaskModel';
 import TaskPeriodModel from '../Models/TaskPeriodModel';
 import HttpException from '../utils/HttpException';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 import { updateDates } from '../utils/TaskTimePeriod';
 import { body, validationResult } from 'express-validator';
 
 export const generatePeriods: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['id'];
 	let task: TaskModel | null;
-	const signedInUserId = loggedUserId(req);
+	const signedInUserId = getLoggedUserId(req);
 	let periodsAlreadyGenerated: boolean;
 
 	const taskId = parseInt(_taskId, 10);
@@ -121,7 +121,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['id'];
 	let task: TaskModel | null;
-	const signedInUserId = loggedUserId(req);
+	const signedInUserId = getLoggedUserId(req);
 
 	const taskId = parseInt(_taskId, 10);
 	if (+_taskId !== taskId) {
@@ -163,7 +163,7 @@ export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['id'];
 	let task: TaskModel | null;
 	let period: TaskPeriodModel | null;
-	const signedInUserId = loggedUserId(req);
+	const signedInUserId = getLoggedUserId(req);
 	const _periodId = req.params['periodId'];
 
 	const periodId = parseInt(_periodId, 10);
@@ -228,7 +228,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 		const _taskId = req.params['id'];
 		const _periodId = req.params['periodId'];
 		const assignTo = +req.body.assignTo;
-		const signedInUserId = loggedUserId(req);
+		const signedInUserId = getLoggedUserId(req);
 		let task: TaskModel | null;
 		let period: TaskPeriodModel | null;
 

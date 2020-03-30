@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import HttpException from '../utils/HttpException';
 import logger from '../../logger';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 
 export default function errorMiddleware(
 	err: HttpException,
@@ -31,7 +31,7 @@ export default function errorMiddleware(
 				resStatusCode: res.statusCode
 			},
 			env: env,
-			user: loggedUserId(req)
+			user: getLoggedUserId(req)
 		};
 		if (status >= 500) {
 			Object.assign(logData, { stack: err.stack });

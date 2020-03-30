@@ -2,7 +2,7 @@ import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
 import TaskData from '../DataAccess/Task/TaskData';
 import HttpException from '../utils/HttpException';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import { validationResult, body } from 'express-validator';
 import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
@@ -12,7 +12,7 @@ import FlatData from '../DataAccess/Flat/FlatData';
 export const getAll: RequestHandler = async (req, res, next) => {
 	logger.debug(
 		'[GET] /tasks/ a user %s try to get all tasks: %o',
-		loggedUserId(req)
+		getLoggedUserId(req)
 	);
 	try {
 		const tasks = await TaskData.getAll();
@@ -64,7 +64,7 @@ export const create: RequestHandler[] = [
 		})
 		.withMessage('End Date must be later then Start Date'),
 	async (req, res, next) => {
-		const signedIdUserId = loggedUserId(req);
+		const signedIdUserId = getLoggedUserId(req);
 		logger.debug(
 			'[POST] /tasks user (%s) try to create task with following data: %o',
 			signedIdUserId,
@@ -117,7 +117,7 @@ export const create: RequestHandler[] = [
 
 export const deleteTask: RequestHandler = async (req, res, next) => {
 	const { id } = req.params;
-	const signedInUserId = loggedUserId(req);
+	const signedInUserId = getLoggedUserId(req);
 	logger.debug(
 		'[DELETE] /tasks/%s user (%s) try to delete task',
 		id,

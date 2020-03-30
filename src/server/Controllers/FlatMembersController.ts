@@ -2,7 +2,7 @@ import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
 import { body, validationResult } from 'express-validator';
 import logger from '../../logger';
-import { loggedUserId } from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
 
@@ -33,7 +33,7 @@ export const addMembers: RequestHandler[] = [
 	async (req, res, next) => {
 		const flatId = req.params.flatId;
 		const members: number[] = req.body.members;
-		const signedInUserId = loggedUserId(req);
+		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
 			'[PATCH] /flats/%s/members user (%s) try to add members: %o from flat: %s',
 			flatId,
@@ -113,7 +113,7 @@ export const deleteMembers: RequestHandler[] = [
 	async (req, res, next) => {
 		const flatId = req.params.flatId;
 		const members: number[] = req.body.members;
-		const signedInUserId = loggedUserId(req);
+		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
 			'[DELETE] /flats/%s/members user (%s) try to delete members: %o from flat: %s',
 			flatId,
