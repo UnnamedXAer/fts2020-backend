@@ -1,10 +1,47 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
-import { body, validationResult } from 'express-validator';
+import { body, validationResult, param } from 'express-validator';
 import logger from '../../logger';
 import { getLoggedUserId } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
 import FlatData from '../DataAccess/Flat/FlatData';
+
+export const getMembers: RequestHandler[] = [
+	param('flatId')
+		.isInt()
+		.toInt(),
+	async (req, res, next) => {
+		const flatId = (req.params.flatId as unknown) as number;
+		logger.debug(
+			'[POST] /flats/%s/members user (%s) try to members',
+			flatId,
+			getLoggedUserId(req)
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map(x => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.BAD_REQUEST,
+					'Invalid parameter.',
+					{
+						errorsArray
+					}
+				)
+			);
+		}
+
+		try {
+			const members = await FlatData.getMembers(flatId);
+			res.status(HttpStatus.OK).send(members);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	}
+];
 
 export const addMembers: RequestHandler[] = [
 	body('members')
@@ -50,7 +87,9 @@ export const addMembers: RequestHandler[] = [
 		}
 
 		try {
-			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))) {
+			if (
+				!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))
+			) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
@@ -130,7 +169,9 @@ export const deleteMembers: RequestHandler[] = [
 		}
 
 		try {
-			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))) {
+			if (
+				!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))
+			) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,

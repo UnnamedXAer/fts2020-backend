@@ -92,7 +92,9 @@ export const setMembers: RequestHandler[] = [
 		}
 
 		try {
-			const flatMembers = await FlatData.getMembers(task.flatId!);
+			const flatMembers = (await FlatData.getMembers(task.flatId!)).map(
+				x => x.id
+			);
 
 			const areAllFlatMembers = members.every(x =>
 				flatMembers.includes(x.userId as number)

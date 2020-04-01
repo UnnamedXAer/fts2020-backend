@@ -6,6 +6,7 @@ import {
 	FlatMembersRow,
 	MembersForFlatRow
 } from '../../CustomTypes/DbTypes';
+import UserModel from '../../Models/UserModel';
 
 class FlatData {
 	static async getById(id: number) {
@@ -79,7 +80,9 @@ class FlatData {
 				.select('*')
 				.where({ createBy: userId });
 			const flats = results.map(async flat => {
-				const membersResults: number[] = await this.getMembers(flat.id);
+				const membersResults: number[] = await (
+					await this.getMembers(flat.id)
+				).map(x => x.id);
 
 				return new FlatModel({
 					id: flat.id,
@@ -106,7 +109,9 @@ class FlatData {
 				.join('flatMembers', 'flat.id', '=', 'flatMembers.flatId')
 				.where({ userId });
 			const flatsPromises = results.map(async flat => {
-				const membersResults: number[] = await this.getMembers(flat.id);
+				const membersResults: number[] = await (
+					await this.getMembers(flat.id)
+				).map(x => x.id);
 
 				return new FlatModel({
 					id: flat.id,
@@ -208,11 +213,24 @@ class FlatData {
 
 	static async getMembers(flatId: number) {
 		try {
-			const results: MembersForFlatRow[] = await knex('flatMembers')
-				.select('userId')
+			const results: UserModel[] = await knex('flatMembers')
+				.join('appUser', 'appUser.id', '=', 'userId')
+				.select('appUser.*')
 				.where({ flatId });
 
-			const existingMembers = results.map(x => x.userId);
+			const existingMembers = results.map(
+				x =>
+					new UserModel(
+						x.id,
+						x.emailAddress,
+						x.userName,
+						void 0,
+						x.provider,
+						x.joinDate,
+						x.avatarUrl,
+						x.active
+					)
+			);
 			logger.debug(
 				'[FlatData].getMembers existing members for flat: %s are: %o',
 				flatId,
@@ -231,7 +249,7 @@ class FlatData {
 		signedInUserId: number
 	) {
 		try {
-			const existingMembers = await this.getMembers(flatId);
+			const existingMembers = (await this.getMembers(flatId)).map(x => x.id);
 
 			const notIncludedMembers = members.filter(
 				x => !existingMembers.includes(x)
