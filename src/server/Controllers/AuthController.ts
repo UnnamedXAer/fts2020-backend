@@ -10,12 +10,12 @@ import passport from 'passport';
 import { SESSION_DURATION } from '../../config/config';
 
 export const logIn: RequestHandler[] = [
-	check('emailAddress')
+	body('emailAddress')
 		.exists()
 		.withMessage('Email Address is required.')
 		.isEmail()
 		.withMessage('Invalid Email Address'),
-	check('password').exists(),
+	body('password').exists(),
 	(req, res, next) => {
 		const { emailAddress } = req.body;
 		logger.info(
