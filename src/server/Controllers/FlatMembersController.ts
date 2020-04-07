@@ -13,7 +13,7 @@ export const getMembers: RequestHandler[] = [
 	async (req, res, next) => {
 		const flatId = (req.params.flatId as unknown) as number;
 		logger.debug(
-			'[POST] /flats/%s/members user (%s) try to members',
+			'[GET] /flats/%s/members user (%s) try to members',
 			flatId,
 			getLoggedUserId(req)
 		);

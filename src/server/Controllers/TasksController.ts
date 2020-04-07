@@ -4,28 +4,58 @@ import TaskData from '../DataAccess/Task/TaskData';
 import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
-import { validationResult, body } from 'express-validator';
+import { validationResult, body, param } from 'express-validator';
 import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
 import TaskModel from '../Models/TaskModel';
 import FlatData from '../DataAccess/Flat/FlatData';
 
-export const getAll: RequestHandler = async (req, res, next) => {
-	logger.debug(
-		'[GET] /tasks/ a user %s try to get all tasks: %o',
-		getLoggedUserId(req)
-	);
-	try {
-		const tasks = await TaskData.getAll();
-		res.status(HttpStatus.OK).json(tasks);
-	} catch (err) {
-		next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
-};
+export const getFlatTasks: RequestHandler[] = [
+	param('flatId').isInt().toInt(),
+	async (req, res, next) => {
+		const flatId = (req.params.flatId as unknown) as number;
+		const signedInUserId = getLoggedUserId(req);
+		logger.debug(
+			'[GET] /flats/%s/tasks/ a user %s try to get all tasks: %o',
+			signedInUserId
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(422, 'Not all conditions are fulfilled', {
+					errorsArray,
+					body: req.body,
+				})
+			);
+		}
+
+		try {
+			const isUserFlatMember = await FlatData.isUserFlatMember(
+				signedInUserId,
+				flatId
+			);
+			if (!isUserFlatMember) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this flat.'
+					)
+				);
+			}
+
+			const tasks = await TaskData.getByFlat(flatId);
+			res.status(HttpStatus.OK).json(tasks);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
 
 export const create: RequestHandler[] = [
-	body('flatId')
-		.isInt({ gt: 0, allow_leading_zeroes: false })
-		.toInt(),
+	param('flatId').isInt({ gt: 0, allow_leading_zeroes: false }).toInt(),
 	body('title')
 		.isString()
 		.withMessage('That is not correct value for title.')
@@ -64,9 +94,11 @@ export const create: RequestHandler[] = [
 		})
 		.withMessage('End Date must be later then Start Date'),
 	async (req, res, next) => {
+		const flatId = (req.params.flatId as unknown) as number;
 		const signedIdUserId = getLoggedUserId(req);
 		logger.debug(
-			'[POST] /tasks user (%s) try to create task with following data: %o',
+			'[POST] flats/%s/tasks user (%s) try to create task with following data: %o',
+			flatId,
 			signedIdUserId,
 			{ ...req.body }
 		);
@@ -75,11 +107,11 @@ export const create: RequestHandler[] = [
 		if (!errors.isEmpty()) {
 			let errorsArray = errors
 				.array()
-				.map(x => ({ msg: x.msg, param: x.param }));
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
 					errorsArray,
-					body: req.body
+					body: req.body,
 				})
 			);
 		}
@@ -89,12 +121,24 @@ export const create: RequestHandler[] = [
 			description,
 			startDate,
 			endDate,
-			flatId,
 			timePeriodUnit,
-			timePeriodValue
+			timePeriodValue,
 		} = req.body as TaskModel;
 
 		try {
+			const isUserFlatMember = await FlatData.isUserFlatMember(
+				signedIdUserId,
+				flatId
+			);
+			if (!isUserFlatMember) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this flat.'
+					)
+				);
+			}
+
 			const createdFlat = await TaskData.create(
 				new TaskModel({
 					title,
@@ -103,7 +147,7 @@ export const create: RequestHandler[] = [
 					endDate,
 					flatId,
 					timePeriodUnit,
-					timePeriodValue
+					timePeriodValue,
 				}),
 				signedIdUserId
 			);
@@ -112,7 +156,7 @@ export const create: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	}
+	},
 ];
 
 export const deleteTask: RequestHandler = async (req, res, next) => {
@@ -135,7 +179,12 @@ export const deleteTask: RequestHandler = async (req, res, next) => {
 		const task = await TaskData.getById(idAsNum);
 		if (task) {
 			if (
-				!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!) && task.createBy === idAsNum )
+				!(
+					(await FlatData.isUserFlatOwner(
+						signedInUserId,
+						task.flatId!
+					)) && task.createBy === idAsNum
+				)
 			) {
 				return next(
 					new HttpException(
