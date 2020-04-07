@@ -32,9 +32,9 @@ export const create: RequestHandler[] = [
 		.if((value: any) => typeof value == 'string')
 		.trim()
 		.isLength({ min: 2 })
-		.withMessage('Name must be 2+ chars long.')
+		.withMessage('Title must be 2+ chars long.')
 		.isLength({ max: 50 })
-		.withMessage('Name cannot be more than 50 chars long.'),
+		.withMessage('Title cannot be more than 50 chars long.'),
 	body('description')
 		.optional({ nullable: true })
 		.isString()
