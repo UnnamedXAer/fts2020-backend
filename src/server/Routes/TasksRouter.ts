@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAll, create, deleteTask } from '../Controllers/TasksController';
+import { getFlatTasks, create, deleteTask } from '../Controllers/TasksController';
 import { setMembers } from '../Controllers/TaskMembersController';
 import {
 	generatePeriods,
@@ -8,9 +8,9 @@ import {
 	reassignTaskPeriod
 } from '../Controllers/TaskPeriodsController';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
-router.get('/', getAll);
+router.get('/', getFlatTasks);
 router.post('/', create);
 router.delete('/:id', deleteTask);
 
