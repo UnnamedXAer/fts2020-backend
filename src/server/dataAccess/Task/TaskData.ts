@@ -52,11 +52,11 @@ class TaskData {
 
 	static async getByFlat(id: number) {
 		try {
-			const results: TaskRow[] = await knex('tasks')
+			const results: TaskRow[] = await knex('task')
 				.select('*')
 				.where({ flatId: id });
 
-			const tasks = results.map(async row => {
+			const tasksPromises = results.map(async row => {
 				const membersResults = await this.getMembers(id);
 				const task = this.mapTaskDataToModel(row, membersResults);
 				logger.silly(
@@ -65,6 +65,7 @@ class TaskData {
 				);
 				return task;
 			});
+			const tasks = await Promise.all(tasksPromises);
 			logger.debug(
 				'[TaskData].getByFlatId FlatId: %s, Tasks Count: %s',
 				id,
