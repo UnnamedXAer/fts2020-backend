@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
-import { body, validationResult } from 'express-validator';
+import { body, validationResult, param } from 'express-validator';
 import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
@@ -8,6 +8,65 @@ import FlatData from '../DataAccess/Flat/FlatData';
 import TaskData from '../DataAccess/Task/TaskData';
 import { TaskMemberModel } from '../Models/TaskMemberModel';
 import TaskModel from '../Models/TaskModel';
+
+export const getMembers: RequestHandler[] = [
+	param('flatId').isInt().toInt(),
+	param('taskId').isInt().toInt(),
+	async (req, res, next) => {
+		const flatId = (req.params.flatId as unknown) as number;
+		const taskId = (req.params.taskId as unknown) as number;
+		const signedInUserId = getLoggedUserId(req);
+		logger.debug(
+			'[GET] /flats/%s/tasks/%s/members user (%s) try to members',
+			flatId,
+			taskId,
+			signedInUserId
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.BAD_REQUEST,
+					'Invalid parameter.',
+					{
+						errorsArray,
+					}
+				)
+			);
+		}
+
+		try {
+			let hasAccess = true;
+			const task = await TaskData.getById(taskId);
+			if (task && task.flatId === flatId) {
+				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, flatId);
+				if (!isFlatMember) {
+					hasAccess = false;
+				}
+			} else {
+				hasAccess = false;
+			}
+
+			if (!hasAccess) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this task.'
+					)
+				);
+			}
+
+			const members = await TaskData.getMembers(taskId);
+			res.status(HttpStatus.OK).send(members);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
 
 export const setMembers: RequestHandler[] = [
 	body('members')
@@ -19,7 +78,7 @@ export const setMembers: RequestHandler[] = [
 		.custom((value: []) => value.length <= 100)
 		.withMessage('Exceeded max members payload count (100).')
 		.custom((value: []) => {
-			const everyOutput = value.every(x => {
+			const everyOutput = value.every((x) => {
 				if (x && typeof x === 'object') {
 					const { userId, position } = x;
 					const output =
@@ -83,20 +142,20 @@ export const setMembers: RequestHandler[] = [
 		if (!errors.isEmpty()) {
 			let errorsArray = errors
 				.array()
-				.map(x => ({ msg: x.msg, param: x.param }));
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray
+					errorsArray,
 				})
 			);
 		}
 
 		try {
 			const flatMembers = (await FlatData.getMembers(task.flatId!)).map(
-				x => x.id
+				(x) => x.id
 			);
 
-			const areAllFlatMembers = members.every(x =>
+			const areAllFlatMembers = members.every((x) =>
 				flatMembers.includes(x.userId as number)
 			);
 
@@ -120,5 +179,5 @@ export const setMembers: RequestHandler[] = [
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
 			);
 		}
-	}
+	},
 ];

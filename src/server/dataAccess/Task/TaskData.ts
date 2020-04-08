@@ -3,11 +3,13 @@ import logger from '../../../logger';
 import {
 	TaskRow,
 	TaskMembersRow,
-	TaskPeriodsRow
+	TaskPeriodsRow,
+	UserRow,
 } from '../../CustomTypes/DbTypes';
 import TaskModel from '../../Models/TaskModel';
 import { TaskMemberModel } from '../../Models/TaskMemberModel';
 import TaskPeriodModel from '../../Models/TaskPeriodModel';
+import UserModel from '../../Models/UserModel';
 
 class TaskData {
 	static async getAll() {
@@ -56,7 +58,7 @@ class TaskData {
 				.select('*')
 				.where({ flatId: id });
 
-			const tasksPromises = results.map(async row => {
+			const tasksPromises = results.map(async (row) => {
 				const membersResults = await this.getMembers(id);
 				const task = this.mapTaskDataToModel(row, membersResults);
 				logger.silly(
@@ -92,11 +94,11 @@ class TaskData {
 			endDate: task.endDate,
 			title: task.title,
 			timePeriodUnit: task.timePeriodUnit,
-			timePeriodValue: task.timePeriodValue
+			timePeriodValue: task.timePeriodValue,
 		} as TaskRow;
 
 		try {
-			const createdTask = await knex.transaction(async trx => {
+			const createdTask = await knex.transaction(async (trx) => {
 				const results: TaskRow[] = await trx('task')
 					.insert(taskData)
 					.returning('*');
@@ -115,10 +117,8 @@ class TaskData {
 
 	static async delete(id: number, userId: number) {
 		try {
-			let results = await knex.transaction(async trx => {
-				await trx('taskMembers')
-					.delete()
-					.where({ taskId: id });
+			let results = await knex.transaction(async (trx) => {
+				await trx('taskMembers').delete().where({ taskId: id });
 
 				const deletedTasksCountResults = await trx('task')
 					.delete()
@@ -143,17 +143,28 @@ class TaskData {
 
 	static async getMembers(taskId: number) {
 		try {
-			const results: TaskMembersRow[] = await knex('taskMembers')
-				.select('userId', 'position')
+			const results: UserRow[] = await knex<UserRow[]>('taskMembers')
+			.join('appUser', 'appUser.id', '=', 'userId')
+				.select('appUser.*')
 				.where({ taskId });
 
 			const members = results.map(
-				x => <TaskMemberModel>{ userId: x.userId, position: x.position }
+				(x) =>
+					new UserModel(
+						x.id!,
+						x.emailAddress,
+						x.userName,
+						void 0,
+						x.provider,
+						x.joinDate,
+						x.avatarUrl,
+						x.active
+					)
 			);
 			logger.debug(
-				'[TaskData].getMembers existing members for task: %s are: %o',
+				'[TaskData].getMembers members count for task: %s is: %s',
 				taskId,
-				members
+				members.length
 			);
 			return members;
 		} catch (err) {
@@ -170,19 +181,17 @@ class TaskData {
 		try {
 			const insertDate = new Date();
 			const membersData = members.map(
-				x =>
+				(x) =>
 					<TaskMembersRow>{
 						userId: x.userId,
 						taskId,
 						addedAt: insertDate,
 						addedBy: signedInUserId,
-						position: x.position
+						position: x.position,
 					}
 			);
 
-			await knex('taskMembers')
-				.delete()
-				.where({ taskId });
+			await knex('taskMembers').delete().where({ taskId });
 
 			const results: TaskMembersRow[] | {} = await knex('taskMembers')
 				.insert(membersData)
@@ -222,7 +231,7 @@ class TaskData {
 						startDate: row.startDate,
 						endDate: row.endDate,
 						completedAt: row.completedAt,
-						completedBy: row.completedBy
+						completedBy: row.completedBy,
 				  })
 				: null;
 
@@ -242,12 +251,12 @@ class TaskData {
 		taskPeriods: TaskPeriodModel[],
 		taskId: number
 	) {
-		const periodsData = taskPeriods.map(x => {
+		const periodsData = taskPeriods.map((x) => {
 			return <TaskPeriodsRow>{
 				taskId: taskId,
 				assignedTo: x.assignedTo,
 				startDate: x.startDate,
-				endDate: x.endDate
+				endDate: x.endDate,
 			};
 		});
 
@@ -257,7 +266,7 @@ class TaskData {
 				.returning('*')) as TaskPeriodsRow[];
 
 			const currentTaskPeriods = results.map(
-				x =>
+				(x) =>
 					new TaskPeriodModel({
 						id: x.id,
 						taskId: taskId,
@@ -265,7 +274,7 @@ class TaskData {
 						startDate: x.startDate,
 						endDate: x.endDate,
 						completedAt: x.completedAt,
-						completedBy: x.completedBy
+						completedBy: x.completedBy,
 					})
 			);
 			logger.debug(
@@ -287,7 +296,7 @@ class TaskData {
 				.where({ taskId })) as TaskPeriodsRow[];
 
 			const taskPeriods = results.map(
-				x =>
+				(x) =>
 					new TaskPeriodModel({
 						id: x.id,
 						taskId: x.taskId,
@@ -295,7 +304,7 @@ class TaskData {
 						startDate: x.startDate,
 						endDate: x.endDate,
 						completedAt: x.completedAt,
-						completedBy: x.completedBy
+						completedBy: x.completedBy,
 					})
 			);
 
@@ -317,7 +326,7 @@ class TaskData {
 		const updateData: TaskPeriodsRow = {
 			assignedTo: period.assignedTo,
 			completedAt: period.completedBy ? updateDate : void 0,
-			completedBy: period.completedBy
+			completedBy: period.completedBy,
 		};
 
 		try {
@@ -334,7 +343,7 @@ class TaskData {
 				startDate: row.startDate,
 				endDate: row.endDate,
 				completedAt: row.completedAt,
-				completedBy: row.completedBy
+				completedBy: row.completedBy,
 			});
 
 			logger.debug(
@@ -365,7 +374,7 @@ class TaskData {
 			active: row.active,
 			members: members,
 			createBy: row.createBy,
-			createAt: row.createAt
+			createAt: row.createAt,
 		});
 	}
 }
