@@ -19,7 +19,9 @@ class TaskData {
 			const tasks = [];
 			for (let i = 0; i < results.length; i++) {
 				const taskRow = results[i];
-				const membersResults = await this.getMembers(taskRow.id);
+				const membersResults = (await this.getMembers(taskRow.id)).map(
+					(x) => x.id
+				);
 				const task = this.mapTaskDataToModel(taskRow, membersResults);
 				logger.silly('[TaskData].getAll Task: %o', task);
 				tasks.push(task);
@@ -41,7 +43,9 @@ class TaskData {
 
 			let task = null;
 			if (results.length > 0) {
-				const membersResults = await this.getMembers(id);
+				const membersResults = (await this.getMembers(id)).map(
+					(x) => x.id
+				);
 				task = this.mapTaskDataToModel(results[0], membersResults);
 			}
 
@@ -59,7 +63,9 @@ class TaskData {
 				.where({ flatId: id });
 
 			const tasksPromises = results.map(async (row) => {
-				const membersResults = await this.getMembers(id);
+				const membersResults = (await this.getMembers(id)).map(
+					(x) => x.id
+				);
 				const task = this.mapTaskDataToModel(row, membersResults);
 				logger.silly(
 					'[TaskData].getByFlatId FlatId: %s, Task: %o',
@@ -97,13 +103,29 @@ class TaskData {
 			timePeriodValue: task.timePeriodValue,
 		} as TaskRow;
 
+		const members: number[] = task.members!;
+
 		try {
 			const createdTask = await knex.transaction(async (trx) => {
 				const results: TaskRow[] = await trx('task')
 					.insert(taskData)
 					.returning('*');
 
-				const createdTask = this.mapTaskDataToModel(results[0]);
+				const createdTaskId = results[0].id;
+				const membersData: TaskMembersRow[] = members.map((x, i) => ({
+					userId: x,
+					addedAt: currentDate,
+					addedBy: loggedUserId,
+					position: i + 1,
+					taskId: createdTaskId,
+				}));
+
+				const membersResults = await trx('taskMembers')
+					.insert(membersData)
+					.returning<number[]>('userId');
+
+				const createdTask = this.mapTaskDataToModel(results[0], membersResults);
+
 				return createdTask;
 			});
 
@@ -144,7 +166,7 @@ class TaskData {
 	static async getMembers(taskId: number) {
 		try {
 			const results: UserRow[] = await knex<UserRow[]>('taskMembers')
-			.join('appUser', 'appUser.id', '=', 'userId')
+				.join('appUser', 'appUser.id', '=', 'userId')
 				.select('appUser.*')
 				.where({ taskId });
 
@@ -358,10 +380,7 @@ class TaskData {
 		}
 	}
 
-	private static mapTaskDataToModel(
-		row: TaskRow,
-		members: TaskMemberModel[] = []
-	) {
+	private static mapTaskDataToModel(row: TaskRow, members: number[] = []) {
 		return new TaskModel({
 			id: row.id,
 			flatId: row.flatId,

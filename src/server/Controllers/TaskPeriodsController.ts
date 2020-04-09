@@ -71,7 +71,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 		return res.status(200).json('No members assigned to task.');
 	}
 
-	taskMembers.sort((a, b) => a.position! - b.position!);
+	// taskMembers.sort((a, b) => a.position! - b.position!);
 
 	const membersLen = taskMembers.length;
 	let startDate = task.startDate!;
@@ -84,7 +84,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 		if (membersIndex === membersLen) {
 			membersIndex = 0;
 		}
-		const assignTo = taskMembers[membersIndex++].userId;
+		const assignTo = taskMembers[membersIndex++]//.userId;
 		const { currentStartDate, currentEndDate } = updateDates(
 			periodUnit,
 			periodValue,
@@ -182,7 +182,7 @@ export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 	}
 
 	if (
-		!task?.members?.find(x => x.userId === signedInUserId) ||
+		!task?.members?.find(x => x/*.userId*/ === signedInUserId) ||
 		!period ||
 		period.taskId !== taskId
 	) {
@@ -251,7 +251,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 		}
 
 		if (
-			!task?.members?.find(x => x.userId === signedInUserId) ||
+			!task?.members?.find(x => x/*.userId*/ === signedInUserId) ||
 			!period ||
 			period.taskId !== taskId
 		) {
@@ -272,7 +272,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 			);
 		}
 
-		if (task.members.every(x => x.userId !== assignTo)) {
+		if (task.members.every(x => x/*.userId*/ !== assignTo)) {
 			return next(
 				new HttpException(
 					HttpStatus.CONFLICT,

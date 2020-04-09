@@ -93,6 +93,21 @@ export const create: RequestHandler[] = [
 			return !(Date.parse(value) < Date.parse(req.body.startDate));
 		})
 		.withMessage('End Date must be later then Start Date'),
+	body('members')
+		.optional()
+		.isArray()
+		.withMessage('That is not correct value for members')
+		.if((value: any) => Array.isArray(value) && value.length > 0)
+		.custom((value: []) => {
+			const everyOutput = value.every((x) => {
+				const output = Number.isInteger(x) && x > 0;
+				return output;
+			});
+			return everyOutput;
+		})
+		.withMessage(
+			'That are not correct values for members - not an array of positive integers.'
+		),
 	async (req, res, next) => {
 		const flatId = (req.params.flatId as unknown) as number;
 		const signedIdUserId = getLoggedUserId(req);
@@ -123,8 +138,10 @@ export const create: RequestHandler[] = [
 			endDate,
 			timePeriodUnit,
 			timePeriodValue,
+			members,
 		} = req.body as TaskModel;
 
+		let flatMembers: number[];
 		try {
 			const isUserFlatMember = await FlatData.isUserFlatMember(
 				signedIdUserId,
@@ -139,16 +156,47 @@ export const create: RequestHandler[] = [
 				);
 			}
 
+			flatMembers = await (await FlatData.getMembers(flatId)).map(
+				(x) => x.id
+			);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+
+		const membersValid = members!.every((member) =>
+			flatMembers.includes(member)
+		);
+
+		if (!membersValid) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You tried to add user to task, which is not member of this flat.'
+				)
+			);
+		}
+
+		const notIncludedMembers: number[] = [];
+		for (let i = 0; i < members!.length; i++) {
+			if (!notIncludedMembers.includes(members![i])) {
+				notIncludedMembers.push(members![i]);
+			}
+		}
+
+		const taskToCreate = new TaskModel({
+			title,
+			description,
+			startDate,
+			endDate,
+			flatId,
+			timePeriodUnit,
+			timePeriodValue,
+			members: notIncludedMembers,
+		});
+
+		try {
 			const createdFlat = await TaskData.create(
-				new TaskModel({
-					title,
-					description,
-					startDate,
-					endDate,
-					flatId,
-					timePeriodUnit,
-					timePeriodValue,
-				}),
+				taskToCreate,
 				signedIdUserId
 			);
 
