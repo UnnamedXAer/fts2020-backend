@@ -16,7 +16,7 @@ export default (passport: PassportStatic) => {
 			},
 			async (emailAddress, password, done) => {
 				try {
-					const user = await UserData.getByEmailAddress(emailAddress);
+					const user = await UserData.getByEmailAddressAuth(emailAddress);
 					if (!user) {
 						return done(null, false, {
 							message: 'Email Address or Password are incorrect.'
@@ -63,7 +63,7 @@ export default (passport: PassportStatic) => {
 						});
 					}
 
-					let user = await UserData.getByEmailAddress(emailAddress);
+					let user = await UserData.getByEmailAddressAuth(emailAddress);
 					if (!user) {
 						let avatarUrl = '';
 						if (profile.photos && profile.photos[0]) {

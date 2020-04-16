@@ -2,6 +2,21 @@ import { TaskPeriodUnit } from './TaskTypes';
 
 export type Provider = 'local' | 'google';
 
+export const db = {
+	CommonCols: {
+		user: [
+			'id',
+			'emailAddress',
+			'userName',
+			'provider',
+			'joinDate',
+			'lastModDate',
+			'avatarUrl',
+			'active',
+		],
+	},
+};
+
 export interface UserRow {
 	id?: number;
 	emailAddress: string;
@@ -79,7 +94,7 @@ export interface TaskMembersRow {
 export type MembersForTaskRow = {
 	userId: number;
 	position: number;
-}
+};
 
 export interface TaskPeriodsRow {
 	id?: number;
