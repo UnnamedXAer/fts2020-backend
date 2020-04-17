@@ -11,16 +11,7 @@ class UserData {
 				db.CommonCols.user
 			);
 			const users = results.map((row) => {
-				const user = new UserModel(
-					row.id!,
-					row.emailAddress,
-					row.userName,
-					void 0,
-					row.provider,
-					row.joinDate,
-					row.avatarUrl,
-					row.active
-				);
+				const user = this.mapRowToModel(row);
 				return user;
 			});
 
@@ -33,7 +24,7 @@ class UserData {
 	static async getByEmailAddressAuth(emailAddress: string) {
 		try {
 			const results: UserRow[] = await knex('appUser')
-				.select('*')
+				.select(db.CommonCols.user)
 				.where(
 					knex.raw('LOWER("emailAddress") = :emailAddress', {
 						emailAddress: emailAddress.toLowerCase(),
@@ -73,16 +64,7 @@ class UserData {
 			if (!row) {
 				return null;
 			}
-			const user = new UserModel(
-				row.id!,
-				row.emailAddress,
-				row.userName,
-				void 0,
-				row.provider,
-				row.joinDate,
-				row.avatarUrl,
-				row.active
-			);
+			const user = this.mapRowToModel(row);
 
 			return user;
 		} catch (err) {
@@ -99,16 +81,7 @@ class UserData {
 			if (!row) {
 				return null;
 			}
-			const user = new UserModel(
-				row.id!,
-				row.emailAddress,
-				row.userName,
-				void 0,
-				row.provider,
-				row.joinDate,
-				row.avatarUrl,
-				row.active
-			);
+			const user = this.mapRowToModel(row);
 
 			return user;
 		} catch (err) {
@@ -144,16 +117,7 @@ class UserData {
 				.returning(db.CommonCols.user);
 
 			const row = results[0];
-			return new UserModel(
-				row.id!,
-				row.emailAddress,
-				row.userName,
-				void 0,
-				row.provider,
-				row.joinDate,
-				row.avatarUrl,
-				row.active
-			);
+			return this.mapRowToModel(row);
 		} catch (err) {
 			throw err;
 		}
