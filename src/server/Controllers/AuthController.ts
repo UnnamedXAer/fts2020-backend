@@ -1,13 +1,15 @@
 import { RequestHandler } from 'express';
 import { check, validationResult, body } from 'express-validator';
 import bcrypt from 'bcrypt';
+import passport from 'passport';
+import HttpStatus from 'http-status-codes';
 import UserData from '../DataAccess/User/UserData';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
 import { UserRegisterModel } from '../Models/UserAuthModels';
 import UserModel from '../Models/UserModel';
-import passport from 'passport';
 import { SESSION_DURATION } from '../../config/config';
+import { getLoggedUser } from '../utils/authUser';
 
 export const logIn: RequestHandler[] = [
 	body('emailAddress')
@@ -36,14 +38,14 @@ export const logIn: RequestHandler[] = [
 				);
 			}
 
-			req.login(user, err => {
+			req.login(user, (err) => {
 				if (err) {
 					return next(new HttpException(500, err));
 				}
 				res.status(200).json({ user, expiresIn: SESSION_DURATION });
 			});
 		})(req, res, next);
-	}
+	},
 ];
 
 export const register: RequestHandler[] = [
@@ -52,7 +54,7 @@ export const register: RequestHandler[] = [
 		.withMessage('Email Address is required.')
 		.isEmail()
 		.withMessage('Invalid Email Address')
-		.custom(async value => {
+		.custom(async (value) => {
 			const user = await UserData.getByEmailAddress(value);
 			if (user) {
 				throw new Error('Email Address already in use.');
@@ -80,16 +82,16 @@ export const register: RequestHandler[] = [
 		logger.info('/auth/register a user try to register with data %o', {
 			...req.body,
 			passport: 'password - hidden',
-			confirmPassword: 'password - hidden'
+			confirmPassword: 'password - hidden',
 		});
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
 			let errorsArray = errors
 				.array()
-				.map(x => ({ msg: x.msg, param: x.param }));
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray
+					errorsArray,
 				})
 			);
 		}
@@ -99,7 +101,7 @@ export const register: RequestHandler[] = [
 			password,
 			confirmPassword,
 			userName,
-			provider = 'local'
+			provider = 'local',
 		} = <UserRegisterModel>req.body;
 
 		const hashedPassword = await bcrypt.hash(
@@ -136,14 +138,14 @@ export const register: RequestHandler[] = [
 					)
 				);
 
-			req.login(user, err => {
+			req.login(user, (err) => {
 				if (err) {
 					return next(new HttpException(500, err));
 				}
 				res.status(201).json({ user, expiresIn: SESSION_DURATION });
 			});
 		})(req, res, next);
-	}
+	},
 ];
 
 export const logOut: RequestHandler = (req, res, _) => {
@@ -155,3 +157,72 @@ export const logOut: RequestHandler = (req, res, _) => {
 	req.logout();
 	res.sendStatus(200);
 };
+
+export const changePassword: RequestHandler[] = [
+	body(
+		'newPassword',
+		'Minimum six characters, at least one letter and one number'
+	).matches(new RegExp(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)),
+	body('confirmPassword').custom(async (value, { req }) => {
+		if (value !== req.body.newPassword) {
+			throw new Error('Password confirmation does not match password.');
+		}
+	}),
+	async (req, res, next) => {
+		const signedUser = getLoggedUser(req);
+		logger.info(
+			'/auth/change-password user %s try to change password',
+			signedUser.id
+		);
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(422, 'Not all conditions are fulfilled', {
+					errorsArray,
+				})
+			);
+		}
+
+		const { oldPassword, newPassword } = req.body;
+
+		let user: UserModel;
+		try {
+			user = (await UserData.getByEmailAddressAuth(
+				signedUser.emailAddress
+			)) as UserModel;
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+
+		const passwordMatch = await bcrypt.compare(oldPassword, user.password!);
+
+		if (!passwordMatch) {
+			return next(
+				new HttpException(HttpStatus.UNAUTHORIZED, 'Wrong password.')
+			);
+		}
+
+		const hashedPassword = await bcrypt.hash(
+			newPassword,
+			bcrypt.genSaltSync(10)
+		);
+
+		try {
+			const partialUser: Partial<UserModel> = {
+				password: hashedPassword,
+				id: signedUser.id,
+			};
+
+			await UserData.update(partialUser);
+
+			res.sendStatus(HttpStatus.OK);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];

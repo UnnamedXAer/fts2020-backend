@@ -131,6 +131,7 @@ class UserData {
 					emailAddress: user.emailAddress,
 					userName: user.userName,
 					avatarUrl: user.avatarUrl,
+					password: user.password
 				} as UserRow)
 				.returning(db.CommonCols.user);
 
