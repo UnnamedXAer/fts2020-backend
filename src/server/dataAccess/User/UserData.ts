@@ -24,7 +24,7 @@ class UserData {
 	static async getByEmailAddressAuth(emailAddress: string) {
 		try {
 			const results: UserRow[] = await knex('appUser')
-				.select(db.CommonCols.user)
+				.select(db.CommonCols.user.concat('password'))
 				.where(
 					knex.raw('LOWER("emailAddress") = :emailAddress', {
 						emailAddress: emailAddress.toLowerCase(),
