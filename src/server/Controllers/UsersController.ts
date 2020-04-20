@@ -148,7 +148,7 @@ export const update: RequestHandler[] = [
 		try {
 			const existingUser = await UserData.getById(id);
 			if (!existingUser || existingUser.id !== signedIdUserId) {
-				next(
+				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
 						'Unauthorized access.'
