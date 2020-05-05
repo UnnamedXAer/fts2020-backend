@@ -4,7 +4,7 @@ import { body, validationResult, param } from 'express-validator';
 import logger from '../../logger';
 import { getLoggedUserId } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
-import FlatData from '../DataAccess/Flat/FlatData';
+import FlatData from '../dataAccess/Flat/FlatData';
 
 export const getMembers: RequestHandler[] = [
 	param('flatId')

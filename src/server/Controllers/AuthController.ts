@@ -3,11 +3,11 @@ import { check, validationResult, body } from 'express-validator';
 import bcrypt from 'bcrypt';
 import passport from 'passport';
 import HttpStatus from 'http-status-codes';
-import UserData from '../DataAccess/User/UserData';
+import UserData from '../dataAccess/User/UserData';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
-import { UserRegisterModel } from '../Models/UserAuthModels';
-import UserModel from '../Models/UserModel';
+import { UserRegisterModel } from '../models/UserAuthModels';
+import UserModel from '../models/UserModel';
 import { SESSION_DURATION } from '../../config/config';
 import { getLoggedUser } from '../utils/authUser';
 

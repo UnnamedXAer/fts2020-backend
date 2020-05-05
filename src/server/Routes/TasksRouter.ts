@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { getFlatTasks, create, deleteTask } from '../Controllers/TasksController';
-import { setMembers, getMembers } from '../Controllers/TaskMembersController';
+import { getFlatTasks, create, deleteTask } from '../controllers/TasksController';
+import { setMembers, getMembers } from '../controllers/TaskMembersController';
 import {
 	generatePeriods,
 	getTaskPeriods,
 	completeTaskPeriod,
 	reassignTaskPeriod
-} from '../Controllers/TaskPeriodsController';
+} from '../controllers/TaskPeriodsController';
 
 const router = Router({ mergeParams: true });
 

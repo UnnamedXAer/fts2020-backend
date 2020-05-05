@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getFlats, create, deleteFlat } from '../Controllers/FlatsController';
-import { addMembers, deleteMembers, getMembers } from '../Controllers/FlatMembersController';
+import { getFlats, create, deleteFlat } from '../controllers/FlatsController';
+import { addMembers, deleteMembers, getMembers } from '../controllers/FlatMembersController';
 import tasksRouter from './TasksRouter';
 const router = Router({ mergeParams: true });
 

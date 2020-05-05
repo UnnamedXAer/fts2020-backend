@@ -1,8 +1,8 @@
 import { RequestHandler, Request } from 'express';
 import HttpStatus from 'http-status-codes';
 import HttpException from '../utils/HttpException';
-import FlatData from '../DataAccess/Flat/FlatData';
-import FlatModel from '../Models/FlatModel';
+import FlatData from '../dataAccess/Flat/FlatData';
+import FlatModel from '../models/FlatModel';
 import { body, validationResult, query } from 'express-validator';
 import logger from '../../logger';
 import { getLoggedUserId } from '../utils/authUser';

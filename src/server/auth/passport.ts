@@ -2,9 +2,9 @@ import bcrypt from 'bcrypt';
 import { PassportStatic } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import UserData from '../DataAccess/User/UserData';
-import UserModel from '../Models/UserModel';
-import { UserExternalRegisterModel } from '../Models/UserAuthModels';
+import UserData from '../dataAccess/User/UserData';
+import UserModel from '../models/UserModel';
+import { UserExternalRegisterModel } from '../models/UserAuthModels';
 import logger from '../../logger';
 
 export default (passport: PassportStatic) => {

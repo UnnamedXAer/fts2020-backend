@@ -1,9 +1,9 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
-import TaskData from '../DataAccess/Task/TaskData';
-import FlatData from '../DataAccess/Flat/FlatData';
-import TaskModel from '../Models/TaskModel';
-import TaskPeriodModel from '../Models/TaskPeriodModel';
+import TaskData from '../dataAccess/Task/TaskData';
+import FlatData from '../dataAccess/Flat/FlatData';
+import TaskModel from '../models/TaskModel';
+import TaskPeriodModel from '../models/TaskPeriodModel';
 import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import { updateDates } from '../utils/TaskTimePeriod';

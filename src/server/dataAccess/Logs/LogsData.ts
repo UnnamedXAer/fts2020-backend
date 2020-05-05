@@ -1,6 +1,6 @@
 import knex from '../../../db';
-import LogModel from '../../Models/LogModel';
-import { LogRow } from '../../CustomTypes/DbTypes';
+import LogModel from '../../models/LogModel';
+import { LogRow } from '../../customTypes/DbTypes';
 
 class LogsData {
 	static async getAll() {

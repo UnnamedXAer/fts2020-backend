@@ -4,10 +4,10 @@ import { body, validationResult, param } from 'express-validator';
 import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
-import FlatData from '../DataAccess/Flat/FlatData';
-import TaskData from '../DataAccess/Task/TaskData';
-import { TaskMemberModel } from '../Models/TaskMemberModel';
-import TaskModel from '../Models/TaskModel';
+import FlatData from '../dataAccess/Flat/FlatData';
+import TaskData from '../dataAccess/Task/TaskData';
+import { TaskMemberModel } from '../models/TaskMemberModel';
+import TaskModel from '../models/TaskModel';
 
 export const getMembers: RequestHandler[] = [
 	param('flatId').isInt().toInt(),

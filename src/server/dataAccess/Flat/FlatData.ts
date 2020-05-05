@@ -1,12 +1,12 @@
-import FlatModel from '../../Models/FlatModel';
+import FlatModel from '../../models/FlatModel';
 import knex from '../../../db';
 import logger from '../../../logger';
 import {
 	FlatRow,
 	FlatMembersRow,
 	MembersForFlatRow,
-} from '../../CustomTypes/DbTypes';
-import UserModel from '../../Models/UserModel';
+} from '../../customTypes/DbTypes';
+import UserModel from '../../models/UserModel';
 
 class FlatData {
 	static async getById(id: number) {

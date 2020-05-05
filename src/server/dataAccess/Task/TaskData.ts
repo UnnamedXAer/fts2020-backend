@@ -5,11 +5,11 @@ import {
 	TaskMembersRow,
 	TaskPeriodsRow,
 	UserRow,
-} from '../../CustomTypes/DbTypes';
-import TaskModel from '../../Models/TaskModel';
-import { TaskMemberModel } from '../../Models/TaskMemberModel';
-import TaskPeriodModel from '../../Models/TaskPeriodModel';
-import UserModel from '../../Models/UserModel';
+} from '../../customTypes/DbTypes';
+import TaskModel from '../../models/TaskModel';
+import { TaskMemberModel } from '../../models/TaskMemberModel';
+import TaskPeriodModel from '../../models/TaskPeriodModel';
+import UserModel from '../../models/UserModel';
 
 class TaskData {
 	static async getAll() {

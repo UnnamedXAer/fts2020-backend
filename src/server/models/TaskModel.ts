@@ -1,4 +1,4 @@
-import { TaskPeriodUnit } from '../CustomTypes/TaskTypes';
+import { TaskPeriodUnit } from '../customTypes/TaskTypes';
 
 export default class TaskModel {
 	id?: number;

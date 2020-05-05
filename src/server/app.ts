@@ -7,7 +7,7 @@ import session from 'express-session';
 import cors from 'cors';
 import passport from 'passport';
 import errorMiddleware from './middleware/errorMiddleware';
-import router from './Routes';
+import router from './routes';
 import { expressWinstonLogger } from '../logger/expressLogger';
 const KnexSessionStore = require('connect-session-knex')(session);
 import passportConfig from './auth/passport';

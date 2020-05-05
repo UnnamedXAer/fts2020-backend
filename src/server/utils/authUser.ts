@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import UserModel from '../Models/UserModel';
+import UserModel from '../models/UserModel';
 
 export function getLoggedUserId (req: Request) {
 	return getLoggedUser(req)?.id;

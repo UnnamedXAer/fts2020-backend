@@ -1,10 +1,10 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
-import UserData from '../DataAccess/User/UserData';
+import UserData from '../dataAccess/User/UserData';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
 import { validationResult, body, param } from 'express-validator';
-import UserModel from '../Models/UserModel';
+import UserModel from '../models/UserModel';
 import { getLoggedUserId } from '../utils/authUser';
 
 export const getById: RequestHandler[] = [

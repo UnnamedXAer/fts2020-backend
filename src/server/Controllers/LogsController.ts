@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import LogsData from '../DataAccess/Logs/LogsData';
+import LogsData from '../dataAccess/Logs/LogsData';
 import logger from '../../logger';
 import { QueryOptions } from 'winston';
 import HttpException from '../utils/HttpException';
