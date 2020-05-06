@@ -15,7 +15,8 @@ export const getFlatTasks: RequestHandler[] = [
 		const flatId = (req.params.flatId as unknown) as number;
 		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
-			'[GET] /flats/%s/tasks/ a user %s try to get all tasks: %o',
+			'[GET] /flats/%s/tasks/ a user %s try to get tasks',
+			flatId,
 			signedInUserId
 		);
 
@@ -47,6 +48,23 @@ export const getFlatTasks: RequestHandler[] = [
 			}
 
 			const tasks = await TaskData.getByFlat(flatId);
+			res.status(HttpStatus.OK).json(tasks);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
+export const getUserTasks: RequestHandler[] = [
+	async (req, res, next) => {
+		const signedInUserId = getLoggedUserId(req);
+		logger.debug(
+			'[GET] /tasks a user %s try to get his tasks',
+			signedInUserId
+		);
+
+		try {
+			const tasks = await TaskData.getByUser(signedInUserId);
 			res.status(HttpStatus.OK).json(tasks);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));

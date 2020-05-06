@@ -10,6 +10,7 @@ import TaskModel from '../../models/TaskModel';
 import { TaskMemberModel } from '../../models/TaskMemberModel';
 import TaskPeriodModel from '../../models/TaskPeriodModel';
 import UserModel from '../../models/UserModel';
+import UserTaskModel from '../../models/UserTaskModel';
 
 class TaskData {
 	static async getAll() {
@@ -85,6 +86,48 @@ class TaskData {
 		}
 	}
 
+	static async getByUser(id: number) {
+		try {
+			const tasksIdsQuery = knex('taskMembers')
+				.select('taskId')
+				.where({ userId: id });
+				
+			const results: (TaskRow & { flatName: string })[] = await knex
+				.from('task')
+				.join('flat', 'flat.id', '=', 'flatId')
+				.select('task.*', 'flat.name as flatName')
+				.whereIn('task.id', tasksIdsQuery);
+
+			const tasksPromises = results.map(async (row) => {
+				const task = new UserTaskModel({
+					id: row.id,
+					flatId: row.flatId,
+					title: row.title,
+					flatName: row.flatName,
+					timePeriodUnit: row.timePeriodUnit,
+					timePeriodValue: row.timePeriodValue,
+					active: row.active,
+				});
+
+				logger.silly(
+					'[TaskData].getByUser userId: %s, Task: %o',
+					id,
+					task
+				);
+				return task;
+			});
+			const tasks = await Promise.all(tasksPromises);
+			logger.debug(
+				'[TaskData].getByUser userId: %s, Tasks Count: %s',
+				id,
+				tasks.length
+			);
+			return tasks;
+		} catch (err) {
+			throw err;
+		}
+	}
+
 	static async create(task: TaskModel, loggedUserId: number) {
 		const currentDate = new Date();
 
@@ -124,7 +167,10 @@ class TaskData {
 					.insert(membersData)
 					.returning<number[]>('userId');
 
-				const createdTask = this.mapTaskDataToModel(results[0], membersResults);
+				const createdTask = this.mapTaskDataToModel(
+					results[0],
+					membersResults
+				);
 
 				return createdTask;
 			});
