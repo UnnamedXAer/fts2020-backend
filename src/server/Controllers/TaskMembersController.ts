@@ -10,16 +10,13 @@ import { TaskMemberModel } from '../models/TaskMemberModel';
 import TaskModel from '../models/TaskModel';
 
 export const getMembers: RequestHandler[] = [
-	param('flatId').isInt().toInt(),
-	param('taskId').isInt().toInt(),
+	param('id').isInt().toInt(),
 	async (req, res, next) => {
-		const flatId = (req.params.flatId as unknown) as number;
-		const taskId = (req.params.taskId as unknown) as number;
+		const id = (req.params.id as unknown) as number;
 		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
-			'[GET] /flats/%s/tasks/%s/members user (%s) try to members',
-			flatId,
-			taskId,
+			'[GET] /tasks/%s/members user (%s) try to get members',
+			id,
 			signedInUserId
 		);
 
@@ -41,9 +38,9 @@ export const getMembers: RequestHandler[] = [
 
 		try {
 			let hasAccess = true;
-			const task = await TaskData.getById(taskId);
-			if (task && task.flatId === flatId) {
-				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, flatId);
+			const task = await TaskData.getById(id);
+			if (task) {
+				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, task.flatId);
 				if (!isFlatMember) {
 					hasAccess = false;
 				}
@@ -60,7 +57,7 @@ export const getMembers: RequestHandler[] = [
 				);
 			}
 
-			const members = await TaskData.getMembers(taskId);
+			const members = await TaskData.getMembers(id);
 			res.status(HttpStatus.OK).send(members);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));

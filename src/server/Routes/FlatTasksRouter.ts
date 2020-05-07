@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { getFlatTasks, create, deleteTask } from '../controllers/TasksController';
-import { setMembers, getMembers } from '../controllers/TaskMembersController';
 import {
 	generatePeriods,
 	getTaskPeriods,
@@ -13,9 +12,6 @@ const router = Router({ mergeParams: true });
 router.get('/', getFlatTasks);
 router.post('/', create);
 router.delete('/:id', deleteTask);
-
-router.get('/:taskId/members', getMembers);
-router.put('/:taskId/members', setMembers);
 
 router.get('/:taskId/periods', getTaskPeriods);
 router.put('/:taskId/periods', generatePeriods);
