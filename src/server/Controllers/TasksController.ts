@@ -72,6 +72,46 @@ export const getUserTasks: RequestHandler[] = [
 	},
 ];
 
+export const getTaskById: RequestHandler[] = [
+	param('id').isInt().toInt(),
+	async (req, res, next) => {
+		const id = (req.params.id as unknown) as number;
+		const signedInUserId = getLoggedUserId(req);
+		logger.debug(
+			'[GET] /tasks/%s user %s try to get his task',
+			id,
+			signedInUserId
+		);
+
+		try {
+			const task = await TaskData.getById(id);
+			let hasAccess = task !== null;
+			if (hasAccess) {
+				if (!task!.members!.includes(signedInUserId)) {
+					const flatMembers = await FlatData.getMembers(
+						task!.flatId!
+					);
+					
+					hasAccess = flatMembers.some((x) => x.id === signedInUserId);
+				}
+			}
+
+			if (!hasAccess) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this task.'
+					)
+				);
+			}
+
+			res.status(HttpStatus.OK).json(task);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
 export const create: RequestHandler[] = [
 	param('flatId').isInt({ gt: 0, allow_leading_zeroes: false }).toInt(),
 	body('title')
