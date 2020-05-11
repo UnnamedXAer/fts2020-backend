@@ -49,10 +49,10 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 	if (!errors.isEmpty()) {
 		let errorsArray = errors
 			.array()
-			.map(x => ({ msg: x.msg, param: x.param }));
+			.map((x) => ({ msg: x.msg, param: x.param }));
 		return next(
 			new HttpException(422, 'Not all conditions are fulfilled', {
-				errorsArray
+				errorsArray,
 			})
 		);
 	}
@@ -84,7 +84,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 		if (membersIndex === membersLen) {
 			membersIndex = 0;
 		}
-		const assignTo = taskMembers[membersIndex++]//.userId;
+		const assignTo = taskMembers[membersIndex++]; //.userId;
 		const { currentStartDate, currentEndDate } = updateDates(
 			periodUnit,
 			periodValue,
@@ -96,7 +96,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 			assignedTo: assignTo,
 			startDate: currentStartDate,
 			endDate: currentEndDate,
-			taskId: taskId
+			taskId: taskId,
 		});
 		taskPeriods.push(period);
 
@@ -119,7 +119,7 @@ export const generatePeriods: RequestHandler = async (req, res, next) => {
 };
 
 export const getTaskPeriods: RequestHandler = async (req, res, next) => {
-	const _taskId = req.params['id'];
+	const _taskId = req.params['taskId'];
 	let task: TaskModel | null;
 	const signedInUserId = getLoggedUserId(req);
 
@@ -136,11 +136,7 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
 
-	if (
-		!task ||
-		task.createBy !== signedInUserId ||
-		!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!))
-	) {
+	if (!task || !task.members!.includes(signedInUserId)) {
 		return next(
 			new HttpException(
 				HttpStatus.UNAUTHORIZED,
@@ -182,7 +178,7 @@ export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 	}
 
 	if (
-		!task?.members?.find(x => x/*.userId*/ === signedInUserId) ||
+		!task?.members?.find((x) => x /*.userId*/ === signedInUserId) ||
 		!period ||
 		period.taskId !== taskId
 	) {
@@ -205,7 +201,7 @@ export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
 
 	const periodPart = new TaskPeriodModel({
 		completedBy: signedInUserId,
-		id: periodId
+		id: periodId,
 	});
 
 	try {
@@ -251,7 +247,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 		}
 
 		if (
-			!task?.members?.find(x => x/*.userId*/ === signedInUserId) ||
+			!task?.members?.find((x) => x /*.userId*/ === signedInUserId) ||
 			!period ||
 			period.taskId !== taskId
 		) {
@@ -272,7 +268,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 			);
 		}
 
-		if (task.members.every(x => x/*.userId*/ !== assignTo)) {
+		if (task.members.every((x) => x /*.userId*/ !== assignTo)) {
 			return next(
 				new HttpException(
 					HttpStatus.CONFLICT,
@@ -283,7 +279,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 
 		const periodPart = new TaskPeriodModel({
 			assignedTo: assignTo,
-			id: periodId
+			id: periodId,
 		});
 
 		try {
@@ -294,5 +290,5 @@ export const reassignTaskPeriod: RequestHandler[] = [
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
 			);
 		}
-	}
+	},
 ];
