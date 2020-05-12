@@ -7,116 +7,116 @@ import TaskPeriodModel from '../models/TaskPeriodModel';
 import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import { updateDates } from '../utils/TaskTimePeriod';
-import { body, validationResult } from 'express-validator';
+import { body, validationResult, param } from 'express-validator';
 
-export const generatePeriods: RequestHandler = async (req, res, next) => {
-	const _taskId = req.params['id'];
-	let task: TaskModel | null;
-	const signedInUserId = getLoggedUserId(req);
-	let periodsAlreadyGenerated: boolean;
+export const generatePeriods: RequestHandler[] = [
+	param('taskId').isInt().toInt(),
+	async (req, res, next) => {
+		const taskId = (req.params.taskId as unknown) as number;
+		let task: TaskModel | null;
+		const signedInUserId = getLoggedUserId(req);
+		let periodsAlreadyGenerated: boolean;
 
-	const taskId = parseInt(_taskId, 10);
-	if (+_taskId !== taskId) {
-		return next(
-			new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
-		);
-	}
-
-	try {
-		task = await TaskData.getById(taskId);
-		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
-			taskId
-		);
-		periodsAlreadyGenerated = existingTaskPeriods.length > 0;
-	} catch (err) {
-		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
-
-	if (
-		!task ||
-		task.createBy !== signedInUserId ||
-		!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!))
-	) {
-		return next(
-			new HttpException(
-				HttpStatus.UNAUTHORIZED,
-				'Unauthorized access - You do not have permissions to maintain this task period.'
-			)
-		);
-	}
-
-	const errors = validationResult(req);
-	if (!errors.isEmpty()) {
-		let errorsArray = errors
-			.array()
-			.map((x) => ({ msg: x.msg, param: x.param }));
-		return next(
-			new HttpException(422, 'Not all conditions are fulfilled', {
-				errorsArray,
-			})
-		);
-	}
-
-	if (periodsAlreadyGenerated) {
-		return next(
-			new HttpException(
-				HttpStatus.CONFLICT,
-				'Periods are already generated for this task.'
-			)
-		);
-	}
-	const taskPeriods: TaskPeriodModel[] = [];
-	const taskMembers = task.members;
-	if (!taskMembers || taskMembers.length === 0) {
-		return res.status(200).json('No members assigned to task.');
-	}
-
-	// taskMembers.sort((a, b) => a.position! - b.position!);
-
-	const membersLen = taskMembers.length;
-	let startDate = task.startDate!;
-	const endDate = task.endDate!;
-	const periodUnit = task.timePeriodUnit!;
-	const periodValue = task.timePeriodValue!;
-	let membersIndex = 0;
-
-	for (let i = 0; i < 30; i++) {
-		if (membersIndex === membersLen) {
-			membersIndex = 0;
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(422, 'Invalid param.', {
+					errorsArray,
+				})
+			);
 		}
-		const assignTo = taskMembers[membersIndex++]; //.userId;
-		const { currentStartDate, currentEndDate } = updateDates(
-			periodUnit,
-			periodValue,
-			startDate,
-			i
-		);
 
-		const period = new TaskPeriodModel({
-			assignedTo: assignTo,
-			startDate: currentStartDate,
-			endDate: currentEndDate,
-			taskId: taskId,
-		});
-		taskPeriods.push(period);
-
-		startDate = currentEndDate;
-
-		if (currentEndDate >= endDate) {
-			break;
+		try {
+			task = await TaskData.getById(taskId);
+			const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
+				taskId
+			);
+			periodsAlreadyGenerated = existingTaskPeriods.length > 0;
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
 		}
-	}
 
-	try {
-		const createdTimePeriods = await TaskData.addTaskPeriods(
-			taskPeriods,
-			taskId
-		);
-		res.status(HttpStatus.CREATED).json(createdTimePeriods);
-	} catch (err) {
-		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
-};
+		if (
+			!task ||
+			task.createBy !== signedInUserId ||
+			!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!))
+		) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to maintain this task period.'
+				)
+			);
+		}
+
+		if (periodsAlreadyGenerated) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'Periods are already generated for this task.'
+				)
+			);
+		}
+		const taskPeriods: TaskPeriodModel[] = [];
+		const taskMembers = task.members;
+		if (!taskMembers || taskMembers.length === 0) {
+			return res.status(200).json('No members assigned to task.');
+		}
+
+		// taskMembers.sort((a, b) => a.position! - b.position!);
+
+		const membersLen = taskMembers.length;
+		let startDate = task.startDate!;
+		const endDate = task.endDate!;
+		const periodUnit = task.timePeriodUnit!;
+		const periodValue = task.timePeriodValue!;
+		let membersIndex = 0;
+
+		for (let i = 0; i < 30; i++) {
+			if (membersIndex === membersLen) {
+				membersIndex = 0;
+			}
+			const assignTo = taskMembers[membersIndex++]; //.userId;
+			const { currentStartDate, currentEndDate } = updateDates(
+				periodUnit,
+				periodValue,
+				startDate,
+				i
+			);
+
+			const period = new TaskPeriodModel({
+				assignedTo: assignTo,
+				startDate: currentStartDate,
+				endDate: currentEndDate,
+				taskId: taskId,
+			});
+			taskPeriods.push(period);
+
+			startDate = currentEndDate;
+
+			if (currentEndDate >= endDate) {
+				break;
+			}
+		}
+
+		try {
+			const createdTimePeriods = await TaskData.addTaskPeriods(
+				taskPeriods,
+				taskId
+			);
+			res.status(HttpStatus.CREATED).json(createdTimePeriods);
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+	},
+];
 
 export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['taskId'];

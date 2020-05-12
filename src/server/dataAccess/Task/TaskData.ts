@@ -8,7 +8,9 @@ import {
 } from '../../customTypes/DbTypes';
 import TaskModel from '../../models/TaskModel';
 import { TaskMemberModel } from '../../models/TaskMemberModel';
-import TaskPeriodModel from '../../models/TaskPeriodModel';
+import TaskPeriodModel, {
+	TaskPeriodFullModel,
+} from '../../models/TaskPeriodModel';
 import UserModel from '../../models/UserModel';
 import UserTaskModel from '../../models/UserTaskModel';
 
@@ -91,7 +93,7 @@ class TaskData {
 			const tasksIdsQuery = knex('taskMembers')
 				.select('taskId')
 				.where({ userId: id });
-				
+
 			const results: (TaskRow & { flatName: string })[] = await knex
 				.from('task')
 				.join('flat', 'flat.id', '=', 'flatId')
@@ -318,7 +320,7 @@ class TaskData {
 	static async addTaskPeriods(
 		taskPeriods: TaskPeriodModel[],
 		taskId: number
-	) {
+	): Promise<TaskPeriodFullModel[]> {
 		const periodsData = taskPeriods.map((x) => {
 			return <TaskPeriodsRow>{
 				taskId: taskId,
@@ -329,57 +331,70 @@ class TaskData {
 		});
 
 		try {
-			const results = (await knex('taskPeriods')
-				.insert(periodsData)
-				.returning('*')) as TaskPeriodsRow[];
+			const results = await knex('taskPeriods').insert(periodsData);
 
-			const currentTaskPeriods = results.map(
-				(x) =>
-					new TaskPeriodModel({
-						id: x.id,
-						taskId: taskId,
-						assignedTo: x.assignedTo,
-						startDate: x.startDate,
-						endDate: x.endDate,
-						completedAt: x.completedAt,
-						completedBy: x.completedBy,
-					})
-			);
+			const currentTaskPeriods = this.getTaskPeriodsByTaskId(taskId);
+
 			logger.debug(
-				'[TaskData].addTaskPeriods current periods for: %s are: %o',
+				'[TaskData].addTaskPeriods  %s periods was created for task (%s) ',
 				taskId,
-				currentTaskPeriods
+				results
 			);
 			return currentTaskPeriods;
 		} catch (err) {
-			logger.debug('[TaskData].addMembers error: %o', err);
+			logger.debug('[TaskData].addTaskPeriods error: %o', err);
 			throw err;
 		}
 	}
 
 	static async getTaskPeriodsByTaskId(taskId: number) {
 		try {
-			const results = (await knex('taskPeriods')
-				.select('*')
-				.where({ taskId })) as TaskPeriodsRow[];
+			const results = await knex
+				.select([
+					'tp.id',
+					'tp.taskId',
+					'tp.startDate',
+					'tp.endDate',
+					'tp.completedAt',
+					{ asgEmail: 'asg.emailAddress' },
+					{ asgName: 'asg.userName' },
+					{ asgId: 'asg.id' },
+					{ cbEmail: 'cb.emailAddress' },
+					{ cbName: 'cb.userName' },
+					{ cbId: 'cb.id' },
+				])
+				.from('taskPeriods as tp')
+				.join('appUser as asg', { 'asg.id': 'tp.assignedTo' })
+				.leftJoin('appUser as cb', {
+					'cb.id': 'tp.completedBy',
+				})
+				.where({ taskId });
 
 			const taskPeriods = results.map(
 				(x) =>
-					new TaskPeriodModel({
+					new TaskPeriodFullModel({
 						id: x.id,
 						taskId: x.taskId,
-						assignedTo: x.assignedTo,
+						assignedTo: {
+							emailAddress: x.asgEmail,
+							userName: x.asgName,
+						},
 						startDate: x.startDate,
 						endDate: x.endDate,
-						completedAt: x.completedAt,
-						completedBy: x.completedBy,
+						completedAt: x.completedAt ? x.completedAt : null,
+						completedBy: x.cbEmail
+							? {
+									emailAddress: x.cbEmail,
+									userName: x.cbName,
+							  }
+							: null,
 					})
 			);
 
 			logger.debug(
-				'[TaskData].getTaskPeriods current periods for: %s are: %o',
+				'[TaskData].getTaskPeriods number of periods for task %s is %s',
 				taskId,
-				taskPeriods
+				taskPeriods.length
 			);
 			return taskPeriods;
 		} catch (err) {
