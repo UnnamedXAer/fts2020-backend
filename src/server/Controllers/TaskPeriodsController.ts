@@ -8,9 +8,10 @@ import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import { updateDates } from '../utils/TaskTimePeriod';
 import { body, validationResult, param } from 'express-validator';
+import PeriodData from '../dataAccess/PeriodData/PeriodData';
 
 export const generatePeriods: RequestHandler[] = [
-	param('taskId').isInt().toInt(),
+	param('taskId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
 	async (req, res, next) => {
 		const taskId = (req.params.taskId as unknown) as number;
 		let task: TaskModel | null;
@@ -31,9 +32,7 @@ export const generatePeriods: RequestHandler[] = [
 
 		try {
 			task = await TaskData.getById(taskId);
-			const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
-				taskId
-			);
+			const existingTaskPeriods = await PeriodData.getFullModelByTaskId(taskId);
 			periodsAlreadyGenerated = existingTaskPeriods.length > 0;
 		} catch (err) {
 			return next(
@@ -105,7 +104,7 @@ export const generatePeriods: RequestHandler[] = [
 		}
 
 		try {
-			const createdTimePeriods = await TaskData.addTaskPeriods(
+			const createdTimePeriods = await TaskData.addPeriods(
 				taskPeriods,
 				taskId
 			);
@@ -146,71 +145,82 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	}
 
 	try {
-		const existingTaskPeriods = await TaskData.getTaskPeriodsByTaskId(
-			taskId
-		);
+		const existingTaskPeriods = await PeriodData.getFullModelByTaskId(taskId);
 		res.status(HttpStatus.OK).json(existingTaskPeriods);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
 };
 
-export const completeTaskPeriod: RequestHandler = async (req, res, next) => {
-	const _taskId = req.params['id'];
-	let task: TaskModel | null;
-	let period: TaskPeriodModel | null;
-	const signedInUserId = getLoggedUserId(req);
-	const _periodId = req.params['periodId'];
+export const completeTaskPeriod: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	param('taskId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	async (req, res, next) => {
+		const taskId = (req.params.taskId as unknown) as number;
+		const id = (req.params.id as unknown) as number;
+		let task: TaskModel | null;
+		let period: TaskPeriodModel | null;
+		const signedInUserId = getLoggedUserId(req);
 
-	const periodId = parseInt(_periodId, 10);
-	const taskId = parseInt(_taskId, 10);
-	if (+_taskId !== taskId || +_periodId !== periodId) {
-		return next(
-			new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.')
-		);
-	}
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid param.', {
+					errorsArray,
+				})
+			);
+		}
 
-	try {
-		task = await TaskData.getById(taskId);
-		period = await TaskData.getTaskPeriodById(periodId);
-	} catch (err) {
-		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
+		try {
+			task = await TaskData.getById(taskId);
+			period = await PeriodData.getById(id);
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
 
-	if (
-		!task?.members?.find((x) => x /*.userId*/ === signedInUserId) ||
-		!period ||
-		period.taskId !== taskId
-	) {
-		return next(
-			new HttpException(
-				HttpStatus.UNAUTHORIZED,
-				'Unauthorized access - You do not have permissions to maintain this task period.'
-			)
-		);
-	}
+		if (
+			!period ||
+			!task ||
+			period.taskId !== taskId ||
+			!task.members?.find((x) => x === signedInUserId)
+		) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to maintain this task period.'
+				)
+			);
+		}
 
-	if (period.completedBy) {
-		return next(
-			new HttpException(
-				HttpStatus.CONFLICT,
-				'Task Period already completed.'
-			)
-		);
-	}
+		if (period.completedBy) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'Task Period already completed.'
+				)
+			);
+		}
 
-	const periodPart = new TaskPeriodModel({
-		completedBy: signedInUserId,
-		id: periodId,
-	});
+		const periodPart = new TaskPeriodModel({
+			completedBy: signedInUserId,
+			id: id,
+		});
 
-	try {
-		const updatedPeriod = await TaskData.updateTaskPeriod(periodPart);
-		res.status(200).json(updatedPeriod);
-	} catch (err) {
-		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
-};
+		try {
+			const updatedPeriod = await PeriodData.updatePeriod(periodPart);
+			res.status(200).json(updatedPeriod);
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+	},
+];
 
 export const reassignTaskPeriod: RequestHandler[] = [
 	body('assignTo')
@@ -239,7 +249,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 
 		try {
 			task = await TaskData.getById(taskId);
-			period = await TaskData.getTaskPeriodById(periodId);
+			period = await PeriodData.getById(periodId);
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
@@ -283,7 +293,7 @@ export const reassignTaskPeriod: RequestHandler[] = [
 		});
 
 		try {
-			const updatedPeriod = await TaskData.updateTaskPeriod(periodPart);
+			const updatedPeriod = await PeriodData.updatePeriod(periodPart);
 			res.status(200).json(updatedPeriod);
 		} catch (err) {
 			return next(

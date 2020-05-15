@@ -28,18 +28,23 @@ export default class TaskPeriodModel {
 	}
 }
 
-type TaskPeriodUser = {
+export class TaskPeriodUserModel {
 	emailAddress: string;
 	userName: string;
-};
+
+	constructor(params: TaskPeriodUserModel = {} as TaskPeriodUserModel) {
+		this.emailAddress = params.emailAddress;
+		this.userName = params.userName;
+	}
+}
 
 export class TaskPeriodFullModel {
 	id: number;
 	taskId: number;
 	startDate: Date;
 	endDate: Date;
-	assignedTo: TaskPeriodUser;
-	completedBy: TaskPeriodUser | null;
+	assignedTo: TaskPeriodUserModel;
+	completedBy: TaskPeriodUserModel | null;
 	completedAt: Date | null;
 
 	constructor(params: TaskPeriodFullModel = {} as TaskPeriodFullModel) {

@@ -53,13 +53,6 @@ export interface TaskRow {
 	lastModAt: Date;
 }
 
-export interface TaskTimePeriod {
-	id: number;
-	taskId: number;
-	unit: TaskPeriodUnit;
-	value: number;
-}
-
 export interface FlatRow {
 	id: number;
 	name: string;
@@ -91,11 +84,6 @@ export interface TaskMembersRow {
 	addedBy: number;
 }
 
-export type MembersForTaskRow = {
-	userId: number;
-	position: number;
-};
-
 export interface TaskPeriodsRow {
 	id?: number;
 	taskId?: number;
@@ -105,3 +93,17 @@ export interface TaskPeriodsRow {
 	completedBy?: number;
 	completedAt?: Date;
 }
+
+export type TaskPeriodsFullRow = {
+	id: number;
+	taskId: number;
+	startDate: Date;
+	endDate: Date;
+	asgEmail: string;
+	asgName: string;
+	asgId: number;
+	completedAt: Date | null;
+	cbEmail: string | null;
+	cbName: string | null;
+	cbId: number | null;
+};
