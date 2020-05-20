@@ -91,8 +91,10 @@ export const getTaskById: RequestHandler[] = [
 					const flatMembers = await FlatData.getMembers(
 						task!.flatId!
 					);
-					
-					hasAccess = flatMembers.some((x) => x.id === signedInUserId);
+
+					hasAccess = flatMembers.some(
+						(x) => x.id === signedInUserId
+					);
 				}
 			}
 
@@ -259,6 +261,102 @@ export const create: RequestHandler[] = [
 			);
 
 			res.status(HttpStatus.CREATED).json(createdFlat);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
+export const update: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	body('title')
+		.optional({ nullable: true })
+		.isString()
+		.withMessage('That is not correct value for title.')
+		.if((value: any) => typeof value == 'string')
+		.trim()
+		.isLength({ min: 2 })
+		.withMessage('Title must be 2+ chars long.')
+		.isLength({ max: 50 })
+		.withMessage('Title cannot be more than 50 chars long.'),
+	body('description')
+		.optional({ nullable: true })
+		.isString()
+		.withMessage('That is not correct value for description.')
+		.trim()
+		.isLength({ max: 500 })
+		.withMessage('Description cannot be more than 500 chars long.'),
+	body('active').optional({ nullable: true }).isBoolean(),
+	async (req, res, next) => {
+		const signedIdUserId = getLoggedUserId(req);
+		const id = (req.params.id as unknown) as number;
+
+		logger.debug(
+			'[PATCH] flats/%s/tasks user (%s) try to update task with following data: %o',
+			id,
+			signedIdUserId,
+			{ ...req.body }
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.UNPROCESSABLE_ENTITY,
+					'Not all conditions are fulfilled',
+					{
+						errorsArray,
+						body: req.body,
+					}
+				)
+			);
+		}
+
+		let { title, description, active } = req.body as TaskModel;
+
+		try {
+			const existingTask = await TaskData.getById(id);
+
+			const flat = existingTask
+				? await FlatData.getById(existingTask.flatId!)
+				: null;
+
+			if (
+				!existingTask ||
+				!flat ||
+				(flat.createBy !== signedIdUserId &&
+					existingTask.createBy !== signedIdUserId)
+			) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this task.'
+					)
+				);
+			}
+		} catch (err) {
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
+		}
+
+		const taskData: Partial<TaskModel> = new TaskModel({
+			id,
+			title,
+			description,
+			active,
+		});
+
+		try {
+			const updatedTask = await TaskData.update(
+				taskData,
+				signedIdUserId
+			);
+
+			res.status(HttpStatus.OK).json(updatedTask);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}

@@ -163,6 +163,34 @@ class TaskData {
 		}
 	}
 
+	static async update(task: Partial<TaskModel>, loggedUserId: number) {
+		const currentDate = new Date();
+
+		const taskData = {
+			active: task.active,
+			description: task.description,
+			lastModAt: currentDate,
+			lastModBy: loggedUserId,
+			title: task.title,
+		} as Partial<TaskRow>;
+
+		try {
+			const results = await knex
+				.table('task')
+				.update(taskData)
+				.where({ id: task.id! })
+				.returning('*');
+
+			const updatedTask = this.mapTaskDataToModel(results[0]);
+
+			logger.debug('[TaskData].update flat: %o', updatedTask);
+			return updatedTask;
+		} catch (err) {
+			logger.debug('[TaskData].update error: %o', err);
+			throw err;
+		}
+	}
+
 	static async delete(id: number, userId: number) {
 		try {
 			let results = await knex.transaction(async (trx) => {
@@ -280,7 +308,9 @@ class TaskData {
 		try {
 			const results = await knex('taskPeriods').insert(periodsData);
 
-			const currentTaskPeriods = await PeriodData.getFullModelByTaskId(taskId);
+			const currentTaskPeriods = await PeriodData.getFullModelByTaskId(
+				taskId
+			);
 
 			logger.debug(
 				'[TaskData].addPeriods  task: %s, %s periods was created',
