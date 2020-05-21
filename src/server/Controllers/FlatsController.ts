@@ -6,10 +6,16 @@ import FlatModel from '../models/FlatModel';
 import { body, validationResult, query } from 'express-validator';
 import logger from '../../logger';
 import { getLoggedUserId } from '../utils/authUser';
+import validator from 'validator';
+import UserData from '../dataAccess/User/UserData';
+import UserModel from '../models/UserModel';
+import moment from 'moment';
+import { sendMail } from '../utils/mail';
 
 export const getFlats: RequestHandler[] = [
 	query('userId')
-		.exists().withMessage('Missing userId parameter')
+		.exists()
+		.withMessage('Missing userId parameter')
 		.if((value: any) => value !== undefined)
 		.isInt()
 		.toInt(),
@@ -24,13 +30,13 @@ export const getFlats: RequestHandler[] = [
 		if (!errors.isEmpty()) {
 			let errorsArray = errors
 				.array()
-				.map(x => ({ msg: x.msg, param: x.param }));
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(
 					HttpStatus.BAD_REQUEST,
 					'Invalid parameter.',
 					{
-						errorsArray
+						errorsArray,
 					}
 				)
 			);
@@ -45,7 +51,7 @@ export const getFlats: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	}
+	},
 ];
 
 export const create: RequestHandler[] = [
@@ -95,14 +101,11 @@ export const create: RequestHandler[] = [
 			If I'm wrong please let me know.`
 		)
 		.custom((value: []) => {
-			const everyOutput = value.every(x => {
-				const output = Number.isInteger(x) && x > 0;
-				return output;
-			});
+			const everyOutput = value.every((x) => validator.isEmail(x));
 			return everyOutput;
 		})
 		.withMessage(
-			'That are not correct values for members - not an array of positive integers.'
+			'That are not correct values for members - not an array of email addresses.'
 		),
 	async (req, res, next) => {
 		logger.debug(
@@ -115,31 +118,36 @@ export const create: RequestHandler[] = [
 		if (!errors.isEmpty()) {
 			let errorsArray = errors
 				.array()
-				.map(x => ({ msg: x.msg, param: x.param }));
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray
+					errorsArray,
 				})
 			);
 		}
 
-		let { description, members, name } = req.body as FlatModel;
+		let { description, members, name } = req.body as {
+			description: string;
+			members: string[];
+			name: string;
+		};
 
 		try {
 			const createdFlat = await FlatData.create(
 				new FlatModel({
 					description,
-					members,
-					name
+					name,
 				}),
 				getLoggedUserId(req)
 			);
 
 			res.status(HttpStatus.CREATED).json(createdFlat);
+
+			sendInvitationsToFlat(members, createdFlat);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	}
+	},
 ];
 
 export const deleteFlat: RequestHandler = async (req, res, next) => {
@@ -173,4 +181,59 @@ export const deleteFlat: RequestHandler = async (req, res, next) => {
 	} catch (err) {
 		next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
+};
+
+const sendInvitationsToFlat = async (emails: string[], flat: FlatModel) => {
+	const owner = await UserData.getById(flat.createBy!);
+	emails.forEach(async (email) => {
+		const html = await getEmailInvitationHtml(email, flat, owner!);
+		try {
+			sendMail(email, html);
+		} catch (err) {}
+	});
+};
+
+const getEmailInvitationHtml = async (
+	email: string,
+	flat: FlatModel,
+	owner: UserModel
+) => {
+	const user = await UserData.getByEmailAddress(email);
+
+	const unregisteredInfo = `If you are not a member of FTS2020 you can register.`;
+
+	const html = `<!DOCTYPE html>
+	<html lang="en">
+	
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>FTS2020 Invitation</title>
+	</head>
+	
+	<body>
+		<h1>FTS2020</h1>
+		<h3>Hello ${user ? user.userName : email}</h3>
+	
+		<p>You have been invited by <strong>${owner.emailAddress} <span
+					style="color: #888;"></span>(${
+						owner.userName
+					})</strong> to join a flat in FTS2020 application. Click
+			link below to accept or decline invitation.</p>
+		<p>${unregisteredInfo}</p>
+		<div style="margin: 24px 16px 24px 16px; position: relative; border: 1px solid #ccc; box-shadow: 0 2px 3px #eee;">
+			<p
+				style="position: absolute; left: 24px; top: -16px; border: 2px solid teal; box-shadow: 0 2px 3px teal; background-color: white; font-size: 2em;">
+				Flat
+			</p>
+			<h2>${flat.name}</h2>
+			<p style="color: #888;">Created by: ${owner.emailAddress} ${owner.userName}</p>
+			<p style="color: #888;">Created at: ${moment(flat.createAt).format('LL')}</p>
+			<p>${flat.description}</p>
+		</div>
+	</body>
+	
+	</html>`;
+
+	return html;
 };

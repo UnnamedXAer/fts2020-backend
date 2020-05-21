@@ -163,18 +163,18 @@ class FlatData {
 					createBy: flatRow.createBy,
 				});
 
-				const membersData: FlatMembersRow[] = flat.members!.map(
-					(x) => ({
-						flatId: createdFlat.id!,
-						addedBy: loggedUserId,
-						userId: x,
-						addedAt: currentDate,
-					})
-				);
-				const addedMembers = await trx('flatMembers')
-					.insert(membersData)
-					.returning('userId');
-				createdFlat.members = addedMembers;
+				// const membersData: FlatMembersRow[] = flat.members!.map(
+				// 	(x) => ({
+				// 		flatId: createdFlat.id!,
+				// 		addedBy: loggedUserId,
+				// 		userId: x,
+				// 		addedAt: currentDate,
+				// 	})
+				// );
+				// const addedMembers = await trx('flatMembers')
+				// 	.insert(membersData)
+				// 	.returning('userId');
+				// createdFlat.members = addedMembers;
 
 				return createdFlat;
 			});

@@ -12,5 +12,4 @@ router.use('/logs', logsRouter);
 router.use('/users', ensureAuthenticated, usersRouter);
 router.use('/flats', ensureAuthenticated, flatsRouter);
 router.use('/tasks', ensureAuthenticated, tasksRouter);
-
 export default router;

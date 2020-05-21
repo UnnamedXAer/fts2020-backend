@@ -3,7 +3,7 @@ import HttpStatus from 'http-status-codes';
 import UserData from '../dataAccess/User/UserData';
 import logger from '../../logger';
 import HttpException from '../utils/HttpException';
-import { validationResult, body, param } from 'express-validator';
+import { validationResult, body, param, query } from 'express-validator';
 import UserModel from '../models/UserModel';
 import { getLoggedUserId } from '../utils/authUser';
 
@@ -41,14 +41,14 @@ export const getById: RequestHandler[] = [
 ];
 
 export const getByEmailAddress: RequestHandler[] = [
-	body('emailAddress')
+	query('emailAddress')
 		.exists()
-		.withMessage('Email Address is required.')
+		.withMessage('"emailAddress" query param is required.')
 		.isEmail()
-		.withMessage('Invalid Email Address'),
+		.withMessage('Invalid value of "emailAddress" query param.'),
 	async (req, res, next) => {
-		const { emailAddress } = req.body;
-		logger.info('user/ ( emailAddress: %s )', emailAddress);
+		const { emailAddress } = req.query as { emailAddress: string };
+		logger.info('user/?emailAddress=%s', emailAddress);
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -58,7 +58,7 @@ export const getByEmailAddress: RequestHandler[] = [
 			return next(
 				new HttpException(
 					HttpStatus.NOT_ACCEPTABLE,
-					'Invalid payload.',
+					'Invalid Params.',
 					{
 						errorsArray,
 					}

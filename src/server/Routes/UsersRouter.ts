@@ -4,6 +4,6 @@ const router = Router();
 
 router.get('/:id', getById);
 router.patch('/:id', update);
-router.post('/emailAddress', getByEmailAddress);
+router.get('/', getByEmailAddress);
 
 export default router;
