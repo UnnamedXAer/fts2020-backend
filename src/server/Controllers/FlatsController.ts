@@ -141,9 +141,9 @@ export const create: RequestHandler[] = [
 				getLoggedUserId(req)
 			);
 
-			res.status(HttpStatus.CREATED).json(createdFlat);
-
-			sendInvitationsToFlat(members, createdFlat);
+			// res.status(HttpStatus.CREATED).json(createdFlat);
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, new Error('I\'m testing so please wait.').message));
+			createInvitationsToFlat(members, createdFlat);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
@@ -183,21 +183,28 @@ export const deleteFlat: RequestHandler = async (req, res, next) => {
 	}
 };
 
-const sendInvitationsToFlat = async (emails: string[], flat: FlatModel) => {
-	const owner = await UserData.getById(flat.createBy!);
+const createInvitationsToFlat = async (emails: string[], flat: FlatModel) => {
+	const owner = await UserData.getById(flat.createBy!) as UserModel;
+	const invitation = { id: 12 };
+	await sendInvitationsToFlat(invitation, emails, flat, owner);
+}
+
+const sendInvitationsToFlat = async (invitation: any, emails: string[], flat: FlatModel, owner: UserModel) => {
 	emails.forEach(async (email) => {
-		const html = await getEmailInvitationHtml(email, flat, owner!);
+		const { html, plainText } = await getEmailInvitationContent(invitation.id, email, flat, owner!);
 		try {
-			sendMail(email, html);
-		} catch (err) {}
+			await sendMail(email, 'FTS2020 Invitation', html, plainText);
+		} catch (err) { }
 	});
 };
 
-const getEmailInvitationHtml = async (
+const getEmailInvitationContent = async (
+	invitationId: number,
 	email: string,
 	flat: FlatModel,
 	owner: UserModel
 ) => {
+	const DOMEIN = `http://localhost:3021`;
 	const user = await UserData.getByEmailAddress(email);
 
 	const unregisteredInfo = `If you are not a member of FTS2020 you can register.`;
@@ -209,21 +216,41 @@ const getEmailInvitationHtml = async (
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>FTS2020 Invitation</title>
+	
+		<style>
+			.flatInfo {
+				margin: 34px 16px 24px 16px;
+				position: relative;
+				border: 1px solid #ccc;
+				box-shadow: 0 2px 3px #eee;
+				padding-top: 16px;
+			}
+	
+			.flatInfoLabel {
+				padding: 4px 16px;
+				position: absolute;
+				left: 24px;
+				top: -56px;
+				border: 2px solid teal;
+				box-shadow: 0 2px 3px teal;
+				background-color: white;
+				font-size: 2em;
+			}
+		</style>
+	
 	</head>
 	
 	<body>
 		<h1>FTS2020</h1>
 		<h3>Hello ${user ? user.userName : email}</h3>
 	
-		<p>You have been invited by <strong>${owner.emailAddress} <span
-					style="color: #888;"></span>(${
-						owner.userName
-					})</strong> to join a flat in FTS2020 application. Click
+		<p>You have been invited by <strong>${owner.emailAddress} <span style="color: #888;"></span>(${
+		owner.userName
+		})</strong> to join a flat in FTS2020 application. Click
 			link below to accept or decline invitation.</p>
 		<p>${unregisteredInfo}</p>
-		<div style="margin: 24px 16px 24px 16px; position: relative; border: 1px solid #ccc; box-shadow: 0 2px 3px #eee;">
-			<p
-				style="position: absolute; left: 24px; top: -16px; border: 2px solid teal; box-shadow: 0 2px 3px teal; background-color: white; font-size: 2em;">
+		<div class="flatInfo">
+			<p class="flatInfoLabel">
 				Flat
 			</p>
 			<h2>${flat.name}</h2>
@@ -235,5 +262,9 @@ const getEmailInvitationHtml = async (
 	
 	</html>`;
 
-	return html;
+	const plainText = `You have been invited by ${owner.emailAddress} (${owner.userName}) to join a flat in FTS2020 application.\
+	Click link below to open FTS2020 webpage and decide if you want to accept or reject invitation.\
+	${DOMEIN}/invitation/${invitationId}`;
+
+	return { html, plainText };
 };
