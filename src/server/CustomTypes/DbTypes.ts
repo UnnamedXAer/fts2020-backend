@@ -1,4 +1,5 @@
 import { TaskPeriodUnit } from './TaskTypes';
+import { FlatInvitationStatus } from '../../config/config';
 
 export type Provider = 'local' | 'google';
 
@@ -14,6 +15,16 @@ export const db = {
 			'avatarUrl',
 			'active',
 		],
+		flatInvitation: [
+			'id',
+			'emailAddress',
+			'flatId',
+			'sendDate',
+			'actionDate',
+			'status',
+			'createAt',
+			'createBy',
+		] , 
 	},
 };
 
@@ -61,6 +72,17 @@ export interface FlatRow {
 	createAt: Date;
 	lastModBy: number;
 	lastModAt: Date;
+}
+
+export interface FlatInvitationRow {
+	id?: number;
+	flatId: number;
+	emailAddress: string;
+	createBy: number;
+	createAt: Date;
+	sendDate?: Date;
+	actionDate?: Date;
+	status: FlatInvitationStatus;
 }
 
 export interface FlatMembersRow {

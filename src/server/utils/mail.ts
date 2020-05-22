@@ -2,8 +2,12 @@ import logger from '../../logger';
 import nodemailer from 'nodemailer';
 import { MailOptions } from 'nodemailer/lib/sendmail-transport';
 
-export const sendMail = async (email: string, subject: string, content: string, plainContent?: string) => {
-
+export const sendMail = async (
+	email: string,
+	subject: string,
+	content: string,
+	plainContent?: string
+) => {
 	const transporter = nodemailer.createTransport({
 		service: 'gmail',
 		auth: {
@@ -23,11 +27,12 @@ export const sendMail = async (email: string, subject: string, content: string, 
 	try {
 		const results = await transporter.sendMail(mailOptions);
 		if (results !== void 0) {
-			debugger
+			debugger;
 		}
 		logger.debug('Email sent to: ' + email);
 		return results;
 	} catch (err) {
 		logger.error(err);
+		throw err;
 	}
 };

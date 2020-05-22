@@ -5,12 +5,14 @@ import FlatData from '../dataAccess/Flat/FlatData';
 import FlatModel from '../models/FlatModel';
 import { body, validationResult, query } from 'express-validator';
 import logger from '../../logger';
-import { getLoggedUserId } from '../utils/authUser';
+import { getLoggedUserId, getLoggedUser } from '../utils/authUser';
 import validator from 'validator';
 import UserData from '../dataAccess/User/UserData';
 import UserModel from '../models/UserModel';
 import moment from 'moment';
 import { sendMail } from '../utils/mail';
+import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
+import { FlatInvitationStatus } from '../../config/config';
 
 export const getFlats: RequestHandler[] = [
 	query('userId')
@@ -108,9 +110,10 @@ export const create: RequestHandler[] = [
 			'That are not correct values for members - not an array of email addresses.'
 		),
 	async (req, res, next) => {
+		const loggedUser = getLoggedUser(req);
 		logger.debug(
 			'[POST] /flats/ user (%s) try to create flat: %o',
-			getLoggedUserId(req),
+			loggedUser.id,
 			{ ...req.body }
 		);
 
@@ -138,12 +141,12 @@ export const create: RequestHandler[] = [
 					description,
 					name,
 				}),
-				getLoggedUserId(req)
+				loggedUser.id,
+				members.filter((x) => x !== loggedUser.emailAddress)
 			);
 
-			// res.status(HttpStatus.CREATED).json(createdFlat);
-			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, new Error('I\'m testing so please wait.').message));
-			createInvitationsToFlat(members, createdFlat);
+			res.status(HttpStatus.CREATED).json(createdFlat);
+			sendInvitationsToFlat(createdFlat);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
@@ -183,18 +186,31 @@ export const deleteFlat: RequestHandler = async (req, res, next) => {
 	}
 };
 
-const createInvitationsToFlat = async (emails: string[], flat: FlatModel) => {
-	const owner = await UserData.getById(flat.createBy!) as UserModel;
-	const invitation = { id: 12 };
-	await sendInvitationsToFlat(invitation, emails, flat, owner);
-}
+const sendInvitationsToFlat = async (flat: FlatModel) => {
+	const owner = await UserData.getById(flat.createBy!)!;
+	const invitations = (await FlatInvitationData.getByFlat(flat.id!)).filter(
+		(x) => x.status === FlatInvitationStatus.NOT_SEND
+	);
 
-const sendInvitationsToFlat = async (invitation: any, emails: string[], flat: FlatModel, owner: UserModel) => {
-	emails.forEach(async (email) => {
-		const { html, plainText } = await getEmailInvitationContent(invitation.id, email, flat, owner!);
+	invitations.forEach(async (inv) => {
+		const { html, plainText } = await getEmailInvitationContent(
+			inv.id!,
+			inv.emailAddress,
+			flat,
+			owner!
+		);
 		try {
-			await sendMail(email, 'FTS2020 Invitation', html, plainText);
-		} catch (err) { }
+			await sendMail(
+				inv.emailAddress,
+				'FTS2020 Flat Invitation',
+				html,
+				plainText
+			);
+			await FlatInvitationData.update(
+				inv.id!,
+				FlatInvitationStatus.PENDING
+			);
+		} catch (err) {}
 	});
 };
 
@@ -204,7 +220,7 @@ const getEmailInvitationContent = async (
 	flat: FlatModel,
 	owner: UserModel
 ) => {
-	const DOMEIN = `http://localhost:3021`;
+	const DOMAIN = `http://localhost:3021`;
 	const user = await UserData.getByEmailAddress(email);
 
 	const unregisteredInfo = `If you are not a member of FTS2020 you can register.`;
@@ -244,9 +260,11 @@ const getEmailInvitationContent = async (
 		<h1>FTS2020</h1>
 		<h3>Hello ${user ? user.userName : email}</h3>
 	
-		<p>You have been invited by <strong>${owner.emailAddress} <span style="color: #888;"></span>(${
+		<p>You have been invited by <strong>${
+			owner.emailAddress
+		} <span style="color: #888;"></span>(${
 		owner.userName
-		})</strong> to join a flat in FTS2020 application. Click
+	})</strong> to join a flat in FTS2020 application. Click
 			link below to accept or decline invitation.</p>
 		<p>${unregisteredInfo}</p>
 		<div class="flatInfo">
@@ -264,7 +282,7 @@ const getEmailInvitationContent = async (
 
 	const plainText = `You have been invited by ${owner.emailAddress} (${owner.userName}) to join a flat in FTS2020 application.\
 	Click link below to open FTS2020 webpage and decide if you want to accept or reject invitation.\
-	${DOMEIN}/invitation/${invitationId}`;
+	${DOMAIN}/invitation/${invitationId}`;
 
 	return { html, plainText };
 };

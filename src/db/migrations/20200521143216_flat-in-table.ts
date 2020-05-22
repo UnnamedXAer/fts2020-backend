@@ -1,4 +1,5 @@
 import * as Knex from 'knex';
+import { FlatInvitationStatus } from '../../config/config';
 
 export async function up(knex: Knex): Promise<any> {
 	return Promise.all([
@@ -8,16 +9,19 @@ export async function up(knex: Knex): Promise<any> {
 			table.string('emailAddress', 258).notNullable();
 			table.integer('createBy').notNullable();
 			table
-				.dateTime('createDate', { precision: 6, useTz: true })
+				.dateTime('createAt', { precision: 6, useTz: true })
 				.defaultTo(knex.fn.now())
 				.notNullable();
+			table
+				.dateTime('sendDate', { precision: 6, useTz: true })
+				.nullable();
 			table
 				.dateTime('actionDate', { precision: 6, useTz: true })
 				.nullable();
 			table
-				.enu('status', ['PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'])
+				.enu('status', Object.values(FlatInvitationStatus))
 				.notNullable()
-				.defaultTo('PENDING');
+				.defaultTo(FlatInvitationStatus.NOT_SEND);
 
 			table.foreign('createBy').references('appUser.id');
 			table.foreign('flatId').references('flat.id');
