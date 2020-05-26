@@ -3,7 +3,6 @@ import knex from '../../../db';
 import logger from '../../../logger';
 import { FlatInvitationRow, db } from '../../customTypes/DbTypes';
 import { FlatInvitationStatus } from '../../../config/config';
-import Knex from 'knex';
 
 class FlatInvitationData {
 	static async getById(id: number) {
@@ -83,31 +82,39 @@ class FlatInvitationData {
 	static async create(
 		flatId: number,
 		emailAddresses: string[],
-		loggedUserId: number,
-		trx?: Knex.Transaction
+		loggedUserId: number
 	) {
 		const currentDate = new Date();
 		const data: FlatInvitationRow[] = emailAddresses.map((email) => ({
 			emailAddress: email,
 			flatId: flatId,
-			status: FlatInvitationStatus.NOT_SEND,
+			status: FlatInvitationStatus.NOT_SENT,
 			createBy: loggedUserId,
 			createAt: currentDate,
 		}));
 
-		const _knex = trx ? trx : knex;
-
 		try {
-			const results = await _knex('flatInvitation')
-				.insert(data)
-				.returning<FlatInvitationRow[]>(db.CommonCols.flatInvitation);
+			const createdInvitations = await knex.transaction(async (trx) => {
+				const results: FlatInvitationRow[] | {} = await trx(
+					'flatInvitation'
+				)
+					.insert(data)
+					.returning<FlatInvitationRow[]>(
+						db.CommonCols.flatInvitation
+					);
 
-			const createdInvitations = results.map(
-				this.mapInvitationsDataToModel
-			);
-
+				const createdInvitations: FlatInvitationModel[] = [];
+				if (Array.isArray(results)) {
+					results.forEach((x) => {
+						createdInvitations.push(
+							this.mapInvitationsDataToModel(x)
+						);
+					});
+				}
+				return createdInvitations;
+			});
 			logger.debug(
-				'[FlatInvitationData].create number of new invitations for flat: %s is: %s',
+				'[FlatInvitationData].create - number of new invitations for flat: %s is: %s',
 				createdInvitations.length
 			);
 			return createdInvitations;

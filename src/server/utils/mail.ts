@@ -32,7 +32,7 @@ export const sendMail = async (
 		logger.debug('Email sent to: ' + email);
 		return results;
 	} catch (err) {
-		logger.error(err);
+		logger.error('Unable to send mail to: %s / ' + err.message, email);
 		throw err;
 	}
 };

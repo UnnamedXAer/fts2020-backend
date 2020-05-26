@@ -24,7 +24,8 @@ export const db = {
 			'status',
 			'createAt',
 			'createBy',
-		] , 
+		],
+		flatMembers: ['id', 'flatId', 'userId', 'addedBy', 'addedAt'],
 	},
 };
 

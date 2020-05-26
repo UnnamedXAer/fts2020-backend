@@ -7,7 +7,6 @@ import {
 	MembersForFlatRow,
 } from '../../customTypes/DbTypes';
 import UserModel from '../../models/UserModel';
-import FlatInvitationData from './FlatInvitationData';
 
 class FlatData {
 	static async getById(id: number) {
@@ -136,8 +135,7 @@ class FlatData {
 
 	static async create(
 		flat: FlatModel,
-		loggedUserId: number,
-		membersEmails: string[]
+		loggedUser: UserModel
 	): Promise<FlatModel> {
 		const currentDate = new Date();
 
@@ -145,9 +143,9 @@ class FlatData {
 			name: flat.name,
 			description: flat.description,
 			createAt: currentDate,
-			createBy: loggedUserId,
+			createBy: loggedUser.id!,
 			lastModAt: currentDate,
-			lastModBy: loggedUserId,
+			lastModBy: loggedUser.id!,
 		} as FlatRow;
 
 		try {
@@ -165,12 +163,17 @@ class FlatData {
 					createBy: flatRow.createBy,
 				});
 
-				await FlatInvitationData.create(
-					createdFlat.id!,
-					membersEmails,
-					loggedUserId,
-					trx
-				);
+				const resultsMembers: number[] = await trx
+					.table('flatMembers')
+					.insert({
+						addedAt: currentDate,
+						addedBy: loggedUser.id,
+						flatId: createdFlat.id,
+						userId: loggedUser.id,
+					} as FlatMembersRow)
+					.returning('id');
+
+				createdFlat.members = [...resultsMembers];
 
 				return createdFlat;
 			});
