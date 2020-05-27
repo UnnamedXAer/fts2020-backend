@@ -42,8 +42,8 @@ export const generatePeriods: RequestHandler[] = [
 
 		if (
 			!task ||
-			task.createBy !== signedInUserId ||
-			!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!))
+			(task.createBy !== signedInUserId &&
+				!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!)))
 		) {
 			return next(
 				new HttpException(
