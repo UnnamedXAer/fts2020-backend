@@ -1,4 +1,4 @@
-import { FlatInvitationStatus } from '../../config/config';
+import { FlatInvitationStatus } from '../customTypes/DbTypes';
 
 export default class FlatInvitationModel {
 	id?: number;

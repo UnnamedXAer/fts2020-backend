@@ -1,18 +1,18 @@
 import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
 import { body, validationResult, param } from 'express-validator';
-import moment from 'moment';
 import validator from 'validator';
 import logger from '../../logger';
-import { getLoggedUserId } from '../utils/authUser';
+import { getLoggedUserId, getLoggedUser } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
-import FlatModel from '../models/FlatModel';
-import UserData from '../dataAccess/User/UserData';
 import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
-import { FlatInvitationStatus } from '../../config/config';
-import { sendMail } from '../utils/mail';
-import UserModel from '../models/UserModel';
+import { sendInvitationsToFlat } from '../utils/flatInvitations';
+import {
+	FlatInvitationStatus,
+	FlatInvitationActions,
+} from '../customTypes/DbTypes';
+import FlatInvitationModel from '../models/FlatInvitation';
 
 export const getMembers: RequestHandler[] = [
 	param('flatId').isInt().toInt(),
@@ -150,7 +150,7 @@ export const inviteMembers: RequestHandler[] = [
 		const flatId = (req.params.flatId as unknown) as number;
 		const { members: emails } = req.body as { members: string[] };
 		const loggedUserId = getLoggedUserId(req);
-		logger.debug(
+		logger.http(
 			'[PATCH] /flats/%s/invite-members user (%s) is about to invite members: %o',
 			flatId,
 			loggedUserId,
@@ -199,17 +199,20 @@ export const inviteMembers: RequestHandler[] = [
 				return (
 					x.status === FlatInvitationStatus.CANCELED ||
 					x.status === FlatInvitationStatus.EXPIRED ||
-					x.status === FlatInvitationStatus.REJECTED
+					x.status === FlatInvitationStatus.REJECTED ||
+					x.status === FlatInvitationStatus.NOT_SENT
 				);
 			});
 
 			let emailsToCreateInvs: string[] = [];
-			let emailsToUpdateInvs: string[] = [];
+			let invIdsToUpdate: number[] = [];
 			emails.forEach((email) => {
-				if (
-					flatInvitations.findIndex((x) => x.emailAddress === email)
-				) {
-					emailsToUpdateInvs.push(email);
+				const invitationId = flatInvitations.find(
+					(x) => x.emailAddress === email
+				)?.id;
+
+				if (invitationId !== void 0) {
+					invIdsToUpdate.push(invitationId);
 				} else if (
 					!emailsToCreateInvs.includes(email) &&
 					!flatMembers.includes(email)
@@ -218,8 +221,11 @@ export const inviteMembers: RequestHandler[] = [
 				}
 			});
 
-			if (emailsToUpdateInvs.length > 0) {
-				// await FlatInvitationData.update()
+			for (let i = invIdsToUpdate.length - 1; i >= 0; i--) {
+				await FlatInvitationData.update(
+					invIdsToUpdate[i],
+					FlatInvitationStatus.NOT_SENT
+				);
 			}
 
 			if (emailsToCreateInvs.length > 0) {
@@ -229,7 +235,7 @@ export const inviteMembers: RequestHandler[] = [
 					loggedUserId
 				);
 			}
-			sendInvitationsToFlat(flat);
+			sendInvitationsToFlat(flat.id!);
 
 			res.sendStatus(HttpStatus.CREATED);
 		} catch (err) {
@@ -238,112 +244,91 @@ export const inviteMembers: RequestHandler[] = [
 	},
 ];
 
-const sendInvitationsToFlat = async (flat: FlatModel) => {
-	const owner = await UserData.getById(flat.createBy!)!;
-	const invitations = (await FlatInvitationData.getByFlat(flat.id!)).filter(
-		(x) =>
-			x.status === FlatInvitationStatus.NOT_SENT ||
-			x.status === FlatInvitationStatus.SEND_ERROR
-	);
+export const updateFlatInvitationStatus: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	body('action')
+		.isIn(Object.keys(FlatInvitationActions))
+		.withMessage('Not correct value for "action" property.'),
+	async (req, res, next) => {
+		const id = (req.params.id as unknown) as number;
+		const action = req.body.action as FlatInvitationActions;
+		const loggedUser = getLoggedUser(req);
+		let invitation: FlatInvitationModel | null = null;
+		logger.http(
+			'[PATCH] /invitations/%s/answer user (%s), action: %s',
+			id,
+			loggedUser,
+			id,
+			action
+		);
 
-	invitations.forEach(async (inv) => {
-		let sendSuccessfully: boolean = false;
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid property.', {
+					errorsArray,
+				})
+			);
+		}
 
 		try {
-			const recipient = await UserData.getByEmailAddress(
-				inv.emailAddress
-			);
-
-			const { html, plainText } = await getEmailInvitationContent(
-				inv.id!,
-				inv.emailAddress,
-				flat,
-				owner!,
-				recipient
-			);
-			await sendMail(
-				inv.emailAddress,
-				'FTS2020 Flat Invitation',
-				html,
-				plainText
-			);
-			sendSuccessfully = true;
-			await FlatInvitationData.update(
-				inv.id!,
-				FlatInvitationStatus.PENDING
-			);
+			invitation = await FlatInvitationData.getById(id);
 		} catch (err) {
-			if (sendSuccessfully) {
-				try {
-					await FlatInvitationData.update(
-						inv.id!,
-						FlatInvitationStatus.SEND_ERROR
-					);
-				} catch (err) {}
-			}
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	});
-};
 
-const getEmailInvitationContent = (
-	invitationId: number,
-	email: string,
-	flat: FlatModel,
-	owner: UserModel,
-	recipient: UserModel | null
-) => {
-	const DOMAIN = `http://localhost:3021`;
-	const unregisteredInfo = `If you are not a member of FTS2020 you can register.`;
+		if (
+			!(
+				invitation &&
+				((action === FlatInvitationActions.CANCEL &&
+					invitation.createBy === loggedUser.id) ||
+					((action === FlatInvitationActions.ACCEPT ||
+						action === FlatInvitationActions.REJECT) &&
+						invitation.emailAddress === loggedUser.emailAddress))
+			)
+		) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to perform this invitation action.'
+				)
+			);
+		}
 
-	const html = `<div style="
-		font-size: 1.1em;
-		width: 90%; 
-		max-width: 768px;
-		min-width: 300px; 
-		margin: auto; 
-		font-family: sans-serif
-	">
-		<a href="https://fts2020/" target="blank">
-			<h1 style="text-align: center; width: 100%; color: #009688;">FTS2020</h1>
-		</a>
-		<h2>Hello ${recipient && recipient.userName ? recipient.userName : email}</h2>
+		try {
+			let status: FlatInvitationStatus | undefined;
+			if (action === FlatInvitationActions.ACCEPT)
+				status = FlatInvitationStatus.ACCEPTED;
+			else if (action === FlatInvitationActions.REJECT)
+				status = FlatInvitationStatus.REJECTED;
+			else if (action === FlatInvitationActions.CANCEL)
+				status = FlatInvitationStatus.CANCELED;
 
-		<p>You have been invited by <strong>${
-			owner.emailAddress
-		} <span style="color: #888;"></span>(${
-		owner.userName
-	})</strong> to join a flat in <strong>FTS2020</strong> application.</p>
-		<p>Click <a href="https://fts2020/invitation/12" target="blank" title="Open FTS2020 web page.">here</a>
-			to
-			view invitation and decide if <a href="https://fts2020/invitation/12/accept" target="blank"
-				title="Accept and join to flat.">accept</a> or <a href="https://fts2020/invitation/12/decline"
-				target="blank" title="Reject.">decline</a> it.</p>
-		<p>${unregisteredInfo}</p>
-		<p>If you are not yet member of <strong>FTS2020</strong> <a href="https://fts2020/invitation/12" target="blank"
-				title="Open FTS2020 web page.">here</a> you can sign up.</p>
-		<div style="
-				margin: 34px 16px 24px 16px; 
-				/* position: relative; */
-				/* border: 1px solid #ccc;  */
-				/* box-shadow: 0 2px 3px #eee;  */
-				padding: 16px;
-				padding: 4px 16px;
-				border: 2px solid teal;
-				box-shadow: 0 2px 3px teal;
-				background-color: white;
-			">
-			<h2>${flat.name}</h2>
-			<hr />
-			<p style="color: #888;">Created by: ${owner.emailAddress} ${owner.userName}</p>
-			<p style="color: #888;">Created at: ${moment(flat.createAt).format('LL')}</p>
-			<hr />
-			<p>${flat.description}</p>
-		</div>
-	</div>`;
+			if (!status) {
+				throw new Error(
+					'Unrecognized "Status" for inv: ' + invitation.id
+				);
+			}
 
-	const plainText = `You have been invited by ${owner.emailAddress} (${owner.userName}) to join a flat in FTS2020 application.\
-	Click link below to open FTS2020 webpage and decide if you want to accept or reject invitation.\
-	${DOMAIN}/invitation/${invitationId}`;
+			if (status === FlatInvitationStatus.ACCEPTED) {
+				await FlatData.addMember(
+					invitation.flatId,
+					loggedUser.id,
+					loggedUser.id
+				);
+			}
+			
+			const updatedInvitation = await FlatInvitationData.update(
+				invitation.id!,
+				status
+			);
 
-	return { html, plainText };
-};
+			res.status(HttpStatus.OK).json(updatedInvitation);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];

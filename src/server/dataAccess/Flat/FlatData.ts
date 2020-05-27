@@ -242,9 +242,9 @@ class FlatData {
 		}
 	}
 
-	static async addMembers(
+	static async addMember(
 		flatId: number,
-		members: number[],
+		userId: number,
 		signedInUserId: number
 	) {
 		try {
@@ -252,41 +252,33 @@ class FlatData {
 				(x) => x.id
 			);
 
-			const notIncludedMembers = members.filter(
-				(x) => !existingMembers.includes(x)
-			);
+			if (existingMembers.includes(userId)) {
+				throw new Error(
+					`User is already a member of this flat (${flatId}).`
+				);
+			}
 			const insertDate = new Date();
-			const membersData = notIncludedMembers.map(
-				(x) =>
-					<FlatMembersRow>{
-						userId: x,
-						flatId,
-						addedAt: insertDate,
-						addedBy: signedInUserId,
-					}
-			);
+			const membersData = <FlatMembersRow>{
+				userId,
+				flatId,
+				addedAt: insertDate,
+				addedBy: signedInUserId,
+			};
 
-			const results: number[] | { rows: number[] } = await knex(
-				'flatMembers'
-			)
+			const results: number[] = await knex('flatMembers')
 				.insert(membersData)
 				.returning('userId');
 
-			let addedMembers: number[];
-			if (Array.isArray(results)) {
-				addedMembers = results;
-			} else {
-				addedMembers = results.rows ? results.rows : [];
-			}
+			let addedMemberId: number = results[0];
 			logger.debug(
-				'[FlatData].addMembers added members for: %s are: %o',
+				'[FlatData].addMember added member id: %o',
 				flatId,
-				addedMembers
+				addedMemberId
 			);
 
-			return addedMembers;
+			return addedMemberId;
 		} catch (err) {
-			logger.debug('[FlatData].addMembers error: %o', err);
+			logger.debug('[FlatData].addMember error: %o', err);
 			throw err;
 		}
 	}

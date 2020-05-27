@@ -1,5 +1,20 @@
 import { TaskPeriodUnit } from './TaskTypes';
-import { FlatInvitationStatus } from '../../config/config';
+
+export enum FlatInvitationActions {
+	'ACCEPT' = 'ACCEPT',
+	'REJECT' = 'REJECT',
+	'CANCEL' = 'CANCEL',
+}
+
+export enum FlatInvitationStatus {
+	'NOT_SENT' = 'NOT_SENT',
+	'SEND_ERROR' = 'SEND_ERROR',
+	'PENDING' = 'PENDING',
+	'ACCEPTED' = 'ACCEPTED',
+	'REJECTED' = 'REJECTED',
+	'EXPIRED' = 'EXPIRED',
+	'CANCELED' = 'CANCELED',
+}
 
 export type Provider = 'local' | 'google';
 

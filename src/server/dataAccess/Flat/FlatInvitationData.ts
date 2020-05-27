@@ -2,7 +2,7 @@ import FlatInvitationModel from '../../models/FlatInvitation';
 import knex from '../../../db';
 import logger from '../../../logger';
 import { FlatInvitationRow, db } from '../../customTypes/DbTypes';
-import { FlatInvitationStatus } from '../../../config/config';
+import { FlatInvitationStatus } from '../../customTypes/DbTypes';
 
 class FlatInvitationData {
 	static async getById(id: number) {
