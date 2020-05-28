@@ -4,7 +4,7 @@ import logsRouter from './LogsRouter';
 import usersRouter from './UsersRouter';
 import flatsRouter from './FlatsRouter';
 import tasksRouter from './TasksRouter';
-import flatInvitationsRouter from './FlatInvitationsRouter';
+import invitationsRouter from './InvitationsRouter';
 import ensureAuthenticated from '../middleware/ensureAuthenticated';
 const router = Router();
 
@@ -13,5 +13,5 @@ router.use('/logs', logsRouter);
 router.use('/users', ensureAuthenticated, usersRouter);
 router.use('/flats', ensureAuthenticated, flatsRouter);
 router.use('/tasks', ensureAuthenticated, tasksRouter);
-router.use('/invitations', ensureAuthenticated, flatInvitationsRouter);
+router.use('/invitations', ensureAuthenticated, invitationsRouter);
 export default router;

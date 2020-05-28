@@ -127,6 +127,54 @@ export const deleteMembers: RequestHandler[] = [
 	},
 ];
 
+export const getInvitations: RequestHandler[] = [
+	param('flatId').isInt().toInt(),
+	async (req, res, next) => {
+		const flatId = (req.params.flatId as unknown) as number;
+		const loggedUser = getLoggedUser(req);
+		logger.debug(
+			'[GET] /flats/%s/invitations user (%s) try to invitations',
+			flatId,
+			loggedUser.id
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.BAD_REQUEST,
+					'Invalid parameter.',
+					{
+						errorsArray,
+					}
+				)
+			);
+		}
+
+		try {
+			const membersIds = (await FlatData.getMembers(flatId)).map(
+				(x) => x.id
+			);
+			if (!membersIds.includes(loggedUser.id)) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access. You do not have permissions to maintain this flat.'
+					)
+				);
+			}
+
+			const invitations = await FlatInvitationData.getByFlat(flatId);
+			res.status(HttpStatus.OK).send(invitations);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
 export const inviteMembers: RequestHandler[] = [
 	param('flatId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
 	body('members')
@@ -320,7 +368,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 					loggedUser.id
 				);
 			}
-			
+
 			const updatedInvitation = await FlatInvitationData.update(
 				invitation.id!,
 				status
