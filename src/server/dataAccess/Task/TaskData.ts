@@ -30,7 +30,7 @@ class TaskData {
 				task = this.mapTaskDataToModel(results[0], membersResults);
 			}
 
-			logger.debug('[TaskData].getById given id: %s, Task: %o', id, task);
+			logger.debug('[TaskData].getById id: %s, Task: %o', id, task);
 			return task;
 		} catch (err) {
 			throw err;
@@ -48,10 +48,6 @@ class TaskData {
 					(x) => x.id
 				);
 				const task = this.mapTaskDataToModel(row, membersResults);
-				logger.silly(
-					'[TaskData].getByFlatId FlatId: %s, Task: %o',
-					task
-				);
 				return task;
 			});
 			const tasks = await Promise.all(tasksPromises);
@@ -89,11 +85,6 @@ class TaskData {
 					active: row.active,
 				});
 
-				logger.silly(
-					'[TaskData].getByUser userId: %s, Task: %o',
-					id,
-					task
-				);
 				return task;
 			});
 			const tasks = await Promise.all(tasksPromises);
@@ -204,7 +195,7 @@ class TaskData {
 			});
 
 			logger.debug(
-				'[TaskData].delete task: %s delete by: %s, deleted tasks count: %s',
+				'[TaskData].delete task: %s delete by: %s, delete count: %s',
 				id,
 				userId,
 				results
@@ -238,7 +229,7 @@ class TaskData {
 					)
 			);
 			logger.debug(
-				'[TaskData].getMembers members count for task: %s is: %s',
+				'[TaskData].getMembers task ID: %s members count: %s',
 				taskId,
 				members.length
 			);
@@ -313,7 +304,7 @@ class TaskData {
 			);
 
 			logger.debug(
-				'[TaskData].addPeriods  task: %s, %s periods was created',
+				'[TaskData].addPeriods  task Id: %s, periods created: %o',
 				taskId,
 				results
 			);

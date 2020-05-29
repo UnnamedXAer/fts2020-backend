@@ -3,6 +3,7 @@ import UserModel from '../../models/UserModel';
 import { UserRow, db } from '../../customTypes/DbTypes';
 import { UserExternalRegisterModel } from '../../models/UserAuthModels';
 import { UserRegisterModel } from '../../models/UserAuthModels';
+import logger from '../../../logger';
 
 class UserData {
 	static async getAll() {
@@ -14,9 +15,10 @@ class UserData {
 				const user = this.mapRowToModel(row);
 				return user;
 			});
-
+			logger.debug('[UserData].getAll results count: %s', results.length);
 			return users;
 		} catch (err) {
+			logger.debug('[UserData].getAll error: %o', err);
 			throw err;
 		}
 	}
@@ -45,8 +47,14 @@ class UserData {
 				row.active
 			);
 
+			logger.debug(
+				'[UserData].getByEmailAddressAuth (%s) results count: %s',
+				emailAddress,
+				results.length
+			);
 			return user;
 		} catch (err) {
+			logger.debug('[UserData].getByEmailAddressAuth error: %o', err);
 			throw err;
 		}
 	}
@@ -66,8 +74,14 @@ class UserData {
 			}
 			const user = this.mapRowToModel(row);
 
+			logger.debug(
+				'[UserData].getByEmailAddress (%s) results count: %s',
+				emailAddress,
+				results.length
+			);
 			return user;
 		} catch (err) {
+			logger.debug('[UserData].getByEmailAddress error: %o', err);
 			throw err;
 		}
 	}
@@ -82,9 +96,14 @@ class UserData {
 				return null;
 			}
 			const user = this.mapRowToModel(row);
-
+			logger.debug(
+				'[UserData].getById (%s) results count: %s',
+				id,
+				results.length
+			);
 			return user;
 		} catch (err) {
+			logger.debug('[USERData].update error: %o', err);
 			throw err;
 		}
 	}
@@ -116,9 +135,11 @@ class UserData {
 				.insert(newUser)
 				.returning(db.CommonCols.user);
 
-			const row = results[0];
-			return this.mapRowToModel(row);
+			const createdUser = this.mapRowToModel(results[0]);
+			logger.debug('[UserData].create created user: %o', createdUser);
+			return createdUser;
 		} catch (err) {
+			logger.debug('[UserData].create error: %o', err);
 			throw err;
 		}
 	}
@@ -131,14 +152,18 @@ class UserData {
 					emailAddress: user.emailAddress,
 					userName: user.userName,
 					avatarUrl: user.avatarUrl,
-					password: user.password
+					password: user.password,
 				} as UserRow)
 				.returning(db.CommonCols.user);
 
 			const row = results[0];
 			const updatedUser = this.mapRowToModel(row);
+
+			logger.debug('[UserData].update updatedUser: %o', updatedUser);
+
 			return updatedUser;
 		} catch (err) {
+			logger.debug('[UserData].update error: %o', err);
 			throw err;
 		}
 	}

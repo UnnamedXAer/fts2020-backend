@@ -29,11 +29,14 @@ class FlatData {
 					createAt: flatRow.createAt,
 					members: membersResults.map((x) => x.userId),
 				});
-				logger.debug('[FlatData].getById flat (%s): %o', id, flat);
+				logger.debug('[FlatData].getById flat id: %s, flat exists', id);
 
 				return flat;
 			} else {
-				logger.debug('[FlatData].getById flat (%s): do not exists', id);
+				logger.debug(
+					'[FlatData].getById flat id %s, do NOT exists',
+					id
+				);
 				return null;
 			}
 		} catch (err) {
@@ -94,7 +97,11 @@ class FlatData {
 				});
 			});
 
-			logger.debug('[FlatData].getByCreatedBy flatCnt: %s', flats.length);
+			logger.debug(
+				'[FlatData].getByCreatedBy userID: %s flatCnt: %s',
+				userId,
+				flats.length
+			);
 			return flats;
 		} catch (err) {
 			logger.debug('[FlatData].getByCreatedBy error: %o', err);
@@ -125,7 +132,11 @@ class FlatData {
 
 			const flats = await Promise.all(flatsPromises);
 
-			logger.debug('[FlatData].getByMember flatCnt: %s', flats.length);
+			logger.debug(
+				'[FlatData].getByMember member id: %s flatCnt: %s',
+				userId,
+				flats.length
+			);
 			return flats;
 		} catch (err) {
 			logger.debug('[FlatData].getByMember error: %o', err);
@@ -196,9 +207,10 @@ class FlatData {
 					.where({ id });
 
 				logger.debug(
-					'[FlatData].delete flat deleted: %s, by: %s',
+					'[FlatData].delete flat Id: %s, by %s, deleted count %s',
 					id,
-					userId
+					userId,
+					deleteFlatResults
 				);
 				return deleteFlatResults > 0;
 			});
@@ -231,9 +243,9 @@ class FlatData {
 					)
 			);
 			logger.debug(
-				'[FlatData].getMembers existing members for flat: %s are: %o',
+				'[FlatData].getMembers flat Id: %s, members count: %s',
 				flatId,
-				existingMembers
+				existingMembers.length
 			);
 			return existingMembers;
 		} catch (err) {
@@ -254,7 +266,7 @@ class FlatData {
 
 			if (existingMembers.includes(userId)) {
 				throw new Error(
-					`User is already a member of this flat (${flatId}).`
+					`User (${userId}) is already a member of the flat (${flatId}).`
 				);
 			}
 			const insertDate = new Date();
@@ -271,8 +283,7 @@ class FlatData {
 
 			let addedMemberId: number = results[0];
 			logger.debug(
-				'[FlatData].addMember added member id: %o',
-				flatId,
+				'[FlatData].addMember added member id: %s',
 				addedMemberId
 			);
 
@@ -301,7 +312,8 @@ class FlatData {
 				.whereIn(['userId', 'flatId'], membersToDelete);
 
 			logger.debug(
-				'[FlatData].deleteMembers deleted members count for: %s is: %o',
+				'[FlatData].deleteMembers members: %s, flat Id: s%, delete count: %o',
+				members,
 				flatId,
 				deletedRowsCnt
 			);
@@ -313,13 +325,13 @@ class FlatData {
 		}
 	}
 
-	static async isUserFlatOwner(userId: number, id: number) {
+	static async isUserFlatOwner(userId: number, flatId: number) {
 		try {
-			const flat = await this.getById(id);
+			const flat = await this.getById(flatId);
 			const isOwner = !!flat && flat.createBy == userId;
 			logger.debug(
 				'[FlatData].isFlatOwner flat %s, user: %s, isOwner: %s',
-				id,
+				flatId,
 				userId,
 				isOwner
 			);
@@ -330,14 +342,14 @@ class FlatData {
 		}
 	}
 
-	static async isUserFlatMember(userId: number, id?: number) {
+	static async isUserFlatMember(userId: number, flatId: number) {
 		let isMembers = false;
 
 		try {
 			let results;
 
 			results = await knex('flatMembers')
-				.andWhere({ userId, flatId: id })
+				.andWhere({ userId, flatId: flatId })
 				.count('flatId');
 
 			if (results[0] && results[0].count) {
@@ -352,8 +364,8 @@ class FlatData {
 			logger.debug(
 				'[FlatData].isUserFlatMember userId: %s, flatId: %s, flats count: %s ',
 				userId,
-				id,
-				results[0]?.count ? results[0]?.count : '"no_results"'
+				flatId,
+				results[0]?.count ? results[0]?.count : 0
 			);
 			return isMembers;
 		} catch (err) {
@@ -362,15 +374,15 @@ class FlatData {
 		}
 	}
 
-	static async verifyIfMember(userId: number, name: string, id?: number) {
+	static async verifyIfMember(userId: number, name: string, flatId?: number) {
 		let exists = false;
 
 		try {
 			let results;
 
-			if (id) {
+			if (flatId) {
 				results = await knex('flatMembers')
-					.andWhere({ userId, flatId: id })
+					.andWhere({ userId, flatId: flatId })
 					.count('id');
 			} else {
 				results = await knex('flat')

@@ -91,7 +91,7 @@ class PeriodData {
 			const taskPeriods = results.map(this.mapPeriodFullRowDataToModel);
 
 			logger.debug(
-				'[PeriodData].getPeriodsByTaskId number of periods for task %s is %s',
+				'[PeriodData].getPeriodsByTaskId task Id: %s, periods count: %s',
 				taskId,
 				taskPeriods.length
 			);

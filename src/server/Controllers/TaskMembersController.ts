@@ -40,7 +40,7 @@ export const getMembers: RequestHandler[] = [
 			let hasAccess = true;
 			const task = await TaskData.getById(id);
 			if (task) {
-				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, task.flatId);
+				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, task.flatId!);
 				if (!isFlatMember) {
 					hasAccess = false;
 				}
