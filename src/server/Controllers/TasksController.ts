@@ -351,10 +351,7 @@ export const update: RequestHandler[] = [
 		});
 
 		try {
-			const updatedTask = await TaskData.update(
-				taskData,
-				signedIdUserId
-			);
+			const updatedTask = await TaskData.update(taskData, signedIdUserId);
 
 			res.status(HttpStatus.OK).json(updatedTask);
 		} catch (err) {

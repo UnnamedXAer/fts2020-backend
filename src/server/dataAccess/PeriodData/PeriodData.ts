@@ -5,6 +5,7 @@ import TaskPeriodModel, {
 	TaskPeriodFullModel,
 	TaskPeriodUserModel,
 } from '../../models/TaskPeriodModel';
+import moment from 'moment';
 
 class PeriodData {
 	private static periodFullRow = [
@@ -61,15 +62,13 @@ class PeriodData {
 				.leftJoin('appUser as cb', {
 					'cb.id': 'tp.completedBy',
 				})
-				.where({'tp.id': id});
+				.where({ 'tp.id': id });
 
-			const period = results[0] ? this.mapPeriodFullRowDataToModel(results[0]) : null;
+			const period = results[0]
+				? this.mapPeriodFullRowDataToModel(results[0])
+				: null;
 
-			logger.debug(
-				'[PeriodData].getFullModelById %s is: %o',
-				id,
-				period
-			);
+			logger.debug('[PeriodData].getFullModelById %s is: %o', id, period);
 			return period;
 		} catch (err) {
 			logger.debug('[PeriodData].getFullModelById error: %o', err);
@@ -86,7 +85,8 @@ class PeriodData {
 				.leftJoin('appUser as cb', {
 					'cb.id': 'tp.completedBy',
 				})
-				.where({ taskId }).orderBy('tp.startDate');
+				.where({ taskId })
+				.orderBy('tp.startDate');
 
 			const taskPeriods = results.map(this.mapPeriodFullRowDataToModel);
 
@@ -126,6 +126,31 @@ class PeriodData {
 			return taskPeriod;
 		} catch (err) {
 			logger.debug('[PeriodData].updatePeriod error: %o', err);
+			throw err;
+		}
+	}
+
+	static async resetPeriods(taskId: number) {
+		const currentDate = new Date();
+		const startOfCurrentDate = moment(currentDate).startOf('day').toDate();
+
+		try {
+			await knex.transaction(async (trx) => {
+				const query = await trx('taskPeriods')
+					.del()
+					.where({
+						taskId,
+					})
+					.whereNull('completedBy')
+					.andWhereRaw('date("endDate") > ? ', startOfCurrentDate);
+				console.log(query);
+			});
+
+			logger.debug('[PeriodData].resetPeriods taskId %s', taskId);
+
+			return null;
+		} catch (err) {
+			logger.debug('[PeriodData].resetPeriods error: %o', err);
 			throw err;
 		}
 	}

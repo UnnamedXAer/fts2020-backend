@@ -8,6 +8,7 @@ import FlatData from '../dataAccess/Flat/FlatData';
 import TaskData from '../dataAccess/Task/TaskData';
 import { TaskMemberModel } from '../models/TaskMemberModel';
 import TaskModel from '../models/TaskModel';
+import PeriodData from '../dataAccess/PeriodData/PeriodData';
 
 export const getMembers: RequestHandler[] = [
 	param('id').isInt().toInt(),
@@ -40,7 +41,10 @@ export const getMembers: RequestHandler[] = [
 			let hasAccess = true;
 			const task = await TaskData.getById(id);
 			if (task) {
-				const isFlatMember = await FlatData.isUserFlatMember(signedInUserId, task.flatId!);
+				const isFlatMember = await FlatData.isUserFlatMember(
+					signedInUserId,
+					task.flatId!
+				);
 				if (!isFlatMember) {
 					hasAccess = false;
 				}
@@ -66,36 +70,28 @@ export const getMembers: RequestHandler[] = [
 ];
 
 export const setMembers: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
 	body('members')
 		.isArray()
 		.withMessage(
-			'That are not correct values for members - expected an array of objects with user id and position.'
+			'That are not correct values for members - expected an array of user ids.'
 		)
 		.if((value: any) => Array.isArray(value))
 		.custom((value: []) => value.length <= 100)
-		.withMessage('Exceeded max members payload count (100).')
+		.withMessage('Exceeded max members (100).')
 		.custom((value: []) => {
-			const everyOutput = value.every((x) => {
-				if (x && typeof x === 'object') {
-					const { userId, position } = x;
-					const output =
-						Number.isInteger(userId) &&
-						userId > 0 &&
-						Number.isInteger(position) &&
-						position > 0;
-					return output;
-				}
-				return false;
-			});
+			const everyOutput = value.every(
+				(x) => Number.isInteger(x) && x > 0
+			);
 			return everyOutput;
 		})
 		.withMessage(
-			'That are not correct values for members - expected an array objects of with user id and position.'
+			'That are not correct values for members - expected an array of user ids.'
 		),
 	async (req, res, next) => {
 		let task: TaskModel | null;
-		const id = req.params.id;
-		const members: TaskMemberModel[] = req.body.members;
+		const id = (req.params.id as unknown) as number;
+		const members: number[] = req.body.members;
 		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
 			'[PATCH] /tasks/%s/members user (%s) try to set members: %o ',
@@ -104,15 +100,20 @@ export const setMembers: RequestHandler[] = [
 			members
 		);
 
-		const idAsNum = parseInt(id, 10);
-		if (+id !== idAsNum) {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
-				new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+				new HttpException(422, 'Not all conditions are fulfilled', {
+					errorsArray,
+				})
 			);
 		}
 
 		try {
-			task = await TaskData.getById(idAsNum);
+			task = await TaskData.getById(id);
 			if (
 				!task ||
 				!(
@@ -135,42 +136,40 @@ export const setMembers: RequestHandler[] = [
 			);
 		}
 
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
-			return next(
-				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray,
-				})
-			);
-		}
-
 		try {
 			const flatMembers = (await FlatData.getMembers(task.flatId!)).map(
 				(x) => x.id
 			);
 
 			const areAllFlatMembers = members.every((x) =>
-				flatMembers.includes(x.userId as number)
+				flatMembers.includes(x)
 			);
 
 			if (!areAllFlatMembers) {
 				return next(
 					new HttpException(
 						HttpStatus.UNPROCESSABLE_ENTITY,
-						'Not all users are members of given flat.'
+						'Not all users are members of the flat for this task.'
 					)
 				);
 			}
 
-			const updatedMembers = await TaskData.setMembers(
-				idAsNum,
-				members,
+			await TaskData.setMembers(
+				id,
+				members.map(
+					(x, i) =>
+						new TaskMemberModel({
+							position: i + 1,
+							userId: x,
+						})
+				),
 				signedInUserId
 			);
-			res.status(HttpStatus.OK).json(updatedMembers);
+
+			await PeriodData.resetPeriods(id);
+
+			const updatedTaskMembers = await TaskData.getMembers(id);
+			res.status(HttpStatus.OK).json(updatedTaskMembers);
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
