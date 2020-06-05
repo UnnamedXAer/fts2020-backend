@@ -6,6 +6,8 @@ import TaskPeriodModel, {
 	TaskPeriodUserModel,
 } from '../../models/TaskPeriodModel';
 import moment from 'moment';
+import TaskData from '../Task/TaskData';
+import { updateDates } from '../../utils/TaskTimePeriod';
 
 class PeriodData {
 	private static periodFullRow = [
@@ -130,25 +132,49 @@ class PeriodData {
 		}
 	}
 
-	static async resetPeriods(taskId: number) {
+	static async resetPeriods(
+		taskId: number
+	): Promise<
+		| {
+				info: 'no-members';
+		  }
+		| {
+				info: 'ok';
+				periods: TaskPeriodFullModel[];
+		  }
+	> {
 		const currentDate = new Date();
 		const startOfCurrentDate = moment(currentDate).startOf('day').toDate();
 
 		try {
-			await knex.transaction(async (trx) => {
-				const query = await trx('taskPeriods')
-					.del()
-					.where({
-						taskId,
-					})
-					.whereNull('completedBy')
-					.andWhereRaw('date("endDate") > ? ', startOfCurrentDate);
-				console.log(query);
-			});
+			const delResults = await knex('taskPeriods')
+				.del()
+				.where({
+					taskId,
+				})
+				.whereNull('completedBy')
+				.andWhereRaw('date("endDate") > ? ', startOfCurrentDate);
+
+			logger.debug(
+				'[PeriodData].resetPeriods taskId %s, deleted periods cnt: %s',
+				taskId,
+				delResults
+			);
+
+			const periodsResults = await this.generatePeriods(taskId);
+
+			if (periodsResults.info === 'no-members') {
+				return periodsResults;
+			}
+
+			const createdPeriods = await TaskData.addPeriods(
+				periodsResults.periods,
+				taskId
+			);
 
 			logger.debug('[PeriodData].resetPeriods taskId %s', taskId);
 
-			return null;
+			return { info: 'ok', periods: createdPeriods };
 		} catch (err) {
 			logger.debug('[PeriodData].resetPeriods error: %o', err);
 			throw err;
@@ -177,6 +203,68 @@ class PeriodData {
 		});
 
 		return period;
+	}
+
+	private static async generatePeriods(
+		taskId: number
+	): Promise<
+		{ info: 'no-members' } | { info: 'ok'; periods: TaskPeriodModel[] }
+	> {
+		const task = await TaskData.getById(taskId);
+		if (!task) {
+			throw new Error(`Task with Id: ${taskId} does not exist.`);
+		}
+
+		const taskMembers = task.members!;
+		const membersLen = taskMembers.length;
+		if (membersLen === 0) {
+			return {
+				info: 'no-members',
+			};
+		}
+
+		const lastDatePeriodsResults = await knex('taskPeriods')
+			.max('endDate')
+			.where({ taskId });
+
+		let startDate =
+			lastDatePeriodsResults[0].max !== null
+				? moment(lastDatePeriodsResults[0].max).add(1, 'day').toDate()
+				: task.startDate!;
+		const endDate = task.endDate!;
+		const periodUnit = task.timePeriodUnit!;
+		const periodValue = task.timePeriodValue!;
+		let membersIndex = 0;
+
+		const taskPeriods: TaskPeriodModel[] = [];
+		for (let i = 0; i < 30; i++) {
+			if (membersIndex === membersLen) {
+				membersIndex = 0;
+			}
+			const assignTo = taskMembers[membersIndex++];
+			const { currentStartDate, currentEndDate } = updateDates(
+				periodUnit,
+				periodValue,
+				startDate,
+				i
+			);
+
+			const period = new TaskPeriodModel({
+				assignedTo: assignTo,
+				startDate: currentStartDate,
+				endDate: currentEndDate,
+				taskId: taskId,
+			});
+			taskPeriods.push(period);
+
+			startDate = currentEndDate;
+
+			if (currentEndDate >= endDate) {
+				break;
+			}
+		}
+
+		return { info: 'ok', periods: taskPeriods };
 	}
 }
 

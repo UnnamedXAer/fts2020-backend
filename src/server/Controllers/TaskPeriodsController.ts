@@ -6,7 +6,6 @@ import TaskModel from '../models/TaskModel';
 import TaskPeriodModel from '../models/TaskPeriodModel';
 import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
-import { updateDates } from '../utils/TaskTimePeriod';
 import { body, validationResult, param } from 'express-validator';
 import PeriodData from '../dataAccess/PeriodData/PeriodData';
 
@@ -32,7 +31,9 @@ export const generatePeriods: RequestHandler[] = [
 
 		try {
 			task = await TaskData.getById(taskId);
-			const existingTaskPeriods = await PeriodData.getFullModelByTaskId(taskId);
+			const existingTaskPeriods = await PeriodData.getFullModelByTaskId(
+				taskId
+			);
 			periodsAlreadyGenerated = existingTaskPeriods.length > 0;
 		} catch (err) {
 			return next(
@@ -61,54 +62,19 @@ export const generatePeriods: RequestHandler[] = [
 				)
 			);
 		}
-		const taskPeriods: TaskPeriodModel[] = [];
-		const taskMembers = task.members;
-		if (!taskMembers || taskMembers.length === 0) {
-			return res.status(200).json('No members assigned to task.');
-		}
-
-		// taskMembers.sort((a, b) => a.position! - b.position!);
-
-		const membersLen = taskMembers.length;
-		let startDate = task.startDate!;
-		const endDate = task.endDate!;
-		const periodUnit = task.timePeriodUnit!;
-		const periodValue = task.timePeriodValue!;
-		let membersIndex = 0;
-
-		for (let i = 0; i < 30; i++) {
-			if (membersIndex === membersLen) {
-				membersIndex = 0;
-			}
-			const assignTo = taskMembers[membersIndex++]; //.userId;
-			const { currentStartDate, currentEndDate } = updateDates(
-				periodUnit,
-				periodValue,
-				startDate,
-				i
-			);
-
-			const period = new TaskPeriodModel({
-				assignedTo: assignTo,
-				startDate: currentStartDate,
-				endDate: currentEndDate,
-				taskId: taskId,
-			});
-			taskPeriods.push(period);
-
-			startDate = currentEndDate;
-
-			if (currentEndDate >= endDate) {
-				break;
-			}
-		}
 
 		try {
-			const createdTimePeriods = await TaskData.addPeriods(
-				taskPeriods,
-				taskId
-			);
-			res.status(HttpStatus.CREATED).json(createdTimePeriods);
+			const taskPeriodsResults = await PeriodData.resetPeriods(taskId);
+			if (taskPeriodsResults.info === 'no-members') {
+				return next(
+					new HttpException(
+						HttpStatus.CONFLICT,
+						'No members assigned to task.'
+					)
+				);
+			}
+
+			res.status(HttpStatus.CREATED).json(taskPeriodsResults.periods);
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
@@ -145,7 +111,9 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	}
 
 	try {
-		const existingTaskPeriods = await PeriodData.getFullModelByTaskId(taskId);
+		const existingTaskPeriods = await PeriodData.getFullModelByTaskId(
+			taskId
+		);
 		res.status(HttpStatus.OK).json(existingTaskPeriods);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));

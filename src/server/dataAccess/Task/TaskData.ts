@@ -213,7 +213,8 @@ class TaskData {
 			const results: UserRow[] = await knex<UserRow[]>('taskMembers')
 				.join('appUser', 'appUser.id', '=', 'userId')
 				.select('appUser.*')
-				.where({ taskId });
+				.where({ taskId })
+				.orderBy('taskMembers.position', 'asc');
 
 			const members = results.map(
 				(x) =>
