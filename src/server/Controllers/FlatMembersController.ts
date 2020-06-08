@@ -13,6 +13,7 @@ import {
 	FlatInvitationActions,
 } from '../customTypes/DbTypes';
 import FlatInvitationModel from '../models/FlatInvitation';
+import UserData from '../dataAccess/User/UserData';
 
 export const getMembers: RequestHandler[] = [
 	param('flatId').isInt().toInt(),
@@ -375,6 +376,67 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 			);
 
 			res.status(HttpStatus.OK).json(updatedInvitation);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
+export const getInvitationsPresentation: RequestHandler[] = [
+	param('id').isInt().toInt(),
+	async (req, res, next) => {
+		const id = (req.params.id as unknown) as number;
+		const loggedUser = getLoggedUser(req);
+		logger.debug('[GET] /invitations/%s, user (%s)', id, loggedUser.id);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.BAD_REQUEST,
+					'Invalid parameter.',
+					{
+						errorsArray,
+					}
+				)
+			);
+		}
+
+		try {
+			const invitation = await FlatInvitationData.getById(id);
+
+			if (!invitation) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access. You do not have permissions to maintain this invitation.'
+					)
+				);
+			}
+
+			const sender = await UserData.getById(invitation.createBy);
+			const invitedPerson = await UserData.getByEmailAddress(
+				invitation.emailAddress
+			);
+			const flat = await FlatData.getById(invitation.flatId);
+
+			const payload = {
+				id: invitation.id,
+				status: invitation.status,
+				sendDate: invitation.sendDate,
+				actionDate: invitation.actionDate,
+				createAt: invitation.createAt,
+				sender: sender,
+				invitedPerson: invitedPerson
+					? invitedPerson
+					: invitation.emailAddress,
+				flat: flat,
+			};
+
+			res.status(HttpStatus.OK).send(payload);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
