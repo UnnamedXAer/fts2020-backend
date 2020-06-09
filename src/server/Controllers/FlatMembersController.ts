@@ -428,6 +428,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 				invitation.emailAddress
 			);
 			const flat = await FlatData.getById(invitation.flatId);
+			const flatOwner = await UserData.getById(flat!.createBy!);
 
 			const payload = {
 				id: invitation.id,
@@ -440,6 +441,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 					? invitedPerson
 					: invitation.emailAddress,
 				flat: flat,
+				flatOwner,
 			};
 
 			res.status(HttpStatus.OK).send(payload);
