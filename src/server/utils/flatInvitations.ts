@@ -22,7 +22,7 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 		owner = await UserData.getById(flat.createBy!)!;
 		invitations = (await FlatInvitationData.getByFlat(flat.id!)).filter(
 			(x) =>
-				x.status === FlatInvitationStatus.NOT_SENT ||
+				x.status === FlatInvitationStatus.CREATED ||
 				x.status === FlatInvitationStatus.SEND_ERROR
 		);
 	} catch (err) {
@@ -43,7 +43,7 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 			);
 
 			const { html, plainText } = getEmailInvitationContent(
-				inv.id!,
+				inv.token,
 				inv.emailAddress,
 				flat!,
 				owner!,
@@ -95,14 +95,14 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 };
 
 const getEmailInvitationContent = (
-	invitationId: number,
+	token: string,
 	email: string,
 	flat: FlatModel,
 	owner: UserModel,
 	recipient: UserModel | null
 ) => {
 	const DOMAIN = `http://localhost:3021`;
-	const unregisteredInfo = `If you are not a member of FTS2020 you can register.`;
+	const SERVER_DOMAIN = 'http://localhost:3020';
 
 	const html = `<div style="
 		font-size: 1.1em;
@@ -112,7 +112,7 @@ const getEmailInvitationContent = (
 		margin: auto; 
 		font-family: sans-serif
 	">
-		<a href="https://fts2020/" target="blank">
+		<a href="${DOMAIN}/" target="blank">
 			<h1 style="text-align: center; width: 100%; color: #009688;">FTS2020</h1>
 		</a>
 		<h2>Hello ${recipient && recipient.userName ? recipient.userName : email}</h2>
@@ -122,13 +122,12 @@ const getEmailInvitationContent = (
 		} <span style="color: #888;"></span>(${
 		owner.userName
 	})</strong> to join a flat in <strong>FTS2020</strong> application.</p>
-		<p>Click <a href="https://fts2020/invitation/12" target="blank" title="Open FTS2020 web page.">here</a>
+		<p>Click <a href="${DOMAIN}/invitation/${token}" target="blank" title="Open FTS2020 web page.">here</a>
 			to
-			view invitation and decide if <a href="https://fts2020/invitation/12/accept" target="blank"
-				title="Accept and join to flat.">accept</a> or <a href="https://fts2020/invitation/12/decline"
+			view invitation and decide if <a href="${SERVER_DOMAIN}/invitation/${token}?email=${email}&action=accept" target="blank"
+				title="Accept and join to flat.">accept</a> or <a href="${SERVER_DOMAIN}/invitation/${token}?email=${email}&action=reject"
 				target="blank" title="Reject.">decline</a> it.</p>
-		<p>${unregisteredInfo}</p>
-		<p>If you are not yet member of <strong>FTS2020</strong> <a href="https://fts2020/invitation/12" target="blank"
+		<p>If you are not yet member of <strong>FTS2020</strong> <a href="${DOMAIN}/invitation/${token}?email=${email}" target="blank"
 				title="Open FTS2020 web page.">here</a> you can sign up.</p>
 		<div style="
 				margin: 34px 16px 24px 16px; 
@@ -152,7 +151,7 @@ const getEmailInvitationContent = (
 
 	const plainText = `You have been invited by ${owner.emailAddress} (${owner.userName}) to join a flat in FTS2020 application.\
 	Click link below to open FTS2020 webpage and decide if you want to accept or reject invitation.\
-	${DOMAIN}/invitation/${invitationId}`;
+	${DOMAIN}/invitation/${token}?email=${email}`;
 
 	return { html, plainText };
 };

@@ -7,7 +7,7 @@ export enum FlatInvitationActions {
 }
 
 export enum FlatInvitationStatus {
-	'NOT_SENT' = 'NOT_SENT',
+	'CREATED' = 'CREATED',
 	'SEND_ERROR' = 'SEND_ERROR',
 	'PENDING' = 'PENDING',
 	'ACCEPTED' = 'ACCEPTED',
@@ -39,6 +39,7 @@ export const db = {
 			'status',
 			'createAt',
 			'createBy',
+			'token',
 		],
 		flatMembers: ['id', 'flatId', 'userId', 'addedBy', 'addedAt'],
 	},
@@ -97,8 +98,10 @@ export interface FlatInvitationRow {
 	createBy: number;
 	createAt: Date;
 	sendDate?: Date;
-	actionDate?: Date;
+	actionDate: Date;
 	status: FlatInvitationStatus;
+	token: string;
+	actionBy: number;
 }
 
 export interface FlatMembersRow {

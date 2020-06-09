@@ -249,7 +249,7 @@ export const inviteMembers: RequestHandler[] = [
 					x.status === FlatInvitationStatus.CANCELED ||
 					x.status === FlatInvitationStatus.EXPIRED ||
 					x.status === FlatInvitationStatus.REJECTED ||
-					x.status === FlatInvitationStatus.NOT_SENT
+					x.status === FlatInvitationStatus.CREATED
 				);
 			});
 
@@ -273,7 +273,7 @@ export const inviteMembers: RequestHandler[] = [
 			for (let i = invIdsToUpdate.length - 1; i >= 0; i--) {
 				await FlatInvitationData.update(
 					invIdsToUpdate[i],
-					FlatInvitationStatus.NOT_SENT
+					FlatInvitationStatus.CREATED
 				);
 			}
 
@@ -383,11 +383,13 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 ];
 
 export const getInvitationsPresentation: RequestHandler[] = [
-	param('id').isInt().toInt(),
+	param('token').isUUID(4),
 	async (req, res, next) => {
-		const id = (req.params.id as unknown) as number;
+		const { token } = (req.params as unknown) as {
+			token: string;
+		};
 		const loggedUser = getLoggedUser(req);
-		logger.debug('[GET] /invitations/%s, user (%s)', id, loggedUser.id);
+		logger.debug('[GET] /invitations/%s, user (%s)', token, loggedUser.id);
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -406,9 +408,13 @@ export const getInvitationsPresentation: RequestHandler[] = [
 		}
 
 		try {
-			const invitation = await FlatInvitationData.getById(id);
+			const invitation = await FlatInvitationData.getByToken(token);
 
-			if (!invitation) {
+			if (
+				!invitation ||
+				invitation.emailAddress !== loggedUser.emailAddress ||
+				invitation.createBy !== loggedUser.id
+			) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,

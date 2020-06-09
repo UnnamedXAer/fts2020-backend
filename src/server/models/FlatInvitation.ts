@@ -9,6 +9,7 @@ export default class FlatInvitationModel {
 	status: FlatInvitationStatus;
 	createBy: number;
 	createAt: Date;
+	token: string;
 
 	constructor(prams: FlatInvitationModel = {} as FlatInvitationModel) {
 		const {
@@ -20,6 +21,7 @@ export default class FlatInvitationModel {
 			actionDate,
 			sendDate,
 			status,
+			token
 		} = prams;
 
 		this.id = id;
@@ -30,5 +32,6 @@ export default class FlatInvitationModel {
 		this.actionDate = actionDate;
 		this.sendDate = sendDate;
 		this.status = status;
+		this.token = token;
 	}
 }

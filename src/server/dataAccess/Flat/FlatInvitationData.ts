@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import FlatInvitationModel from '../../models/FlatInvitation';
 import knex from '../../../db';
 import logger from '../../../logger';
@@ -33,6 +34,38 @@ class FlatInvitationData {
 			}
 		} catch (err) {
 			logger.debug('[FlatInvitationData].getById error: %o', err);
+			throw err;
+		}
+	}
+
+	static async getByToken(token: string) {
+		try {
+			const results: FlatInvitationRow[] = await knex(
+				'flatInvitation'
+			).where({
+				token,
+			});
+			const invitationRow = results[0];
+
+			if (invitationRow) {
+				const invitation = this.mapInvitationsDataToModel(
+					invitationRow
+				);
+				logger.debug(
+					'[FlatInvitationData].getById invitation: %o',
+					invitation
+				);
+
+				return invitation;
+			} else {
+				logger.debug(
+					'[FlatInvitationData].getByToken invitation with token: %s do not exists',
+					token
+				);
+				return null;
+			}
+		} catch (err) {
+			logger.debug('[FlatInvitationData].getByToken error: %o', err);
 			throw err;
 		}
 	}
@@ -88,9 +121,12 @@ class FlatInvitationData {
 		const data: FlatInvitationRow[] = emailAddresses.map((email) => ({
 			emailAddress: email,
 			flatId: flatId,
-			status: FlatInvitationStatus.NOT_SENT,
+			status: FlatInvitationStatus.CREATED,
 			createBy: loggedUserId,
 			createAt: currentDate,
+			token: uuidv4(),
+			actionBy: loggedUserId,
+			actionDate: currentDate,
 		}));
 
 		try {
@@ -178,6 +214,7 @@ class FlatInvitationData {
 			sendDate: row.sendDate,
 			actionDate: row.actionDate,
 			status: row.status,
+			token: row.token,
 		});
 	}
 }

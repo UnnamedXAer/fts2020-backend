@@ -135,13 +135,7 @@ class PeriodData {
 	static async resetPeriods(
 		taskId: number
 	): Promise<
-		| {
-				info: 'no-members';
-		  }
-		| {
-				info: 'ok';
-				periods: TaskPeriodFullModel[];
-		  }
+		{ info: 'no-members' } | { info: 'ok'; periods: TaskPeriodFullModel[] }
 	> {
 		const currentDate = new Date();
 		const startOfCurrentDate = moment(currentDate).startOf('day').toDate();

@@ -21,7 +21,7 @@ export async function up(knex: Knex): Promise<any> {
 			table
 				.enu('status', Object.values(FlatInvitationStatus))
 				.notNullable()
-				.defaultTo(FlatInvitationStatus.NOT_SENT);
+				.defaultTo(FlatInvitationStatus.CREATED);
 
 			table.foreign('createBy').references('appUser.id');
 			table.foreign('flatId').references('flat.id');

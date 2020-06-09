@@ -5,7 +5,7 @@ import {
 } from '../controllers/FlatMembersController';
 const router = Router({ mergeParams: true });
 
-router.get('/:id', getInvitationsPresentation);
+router.get('/:token', getInvitationsPresentation);
 router.patch('/:id', updateFlatInvitationStatus);
 
 export default router;
