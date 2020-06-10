@@ -412,8 +412,8 @@ export const getInvitationsPresentation: RequestHandler[] = [
 
 			if (
 				!invitation ||
-				invitation.emailAddress !== loggedUser.emailAddress ||
-				invitation.createBy !== loggedUser.id
+				(invitation.emailAddress !== loggedUser.emailAddress &&
+					invitation.createBy !== loggedUser.id)
 			) {
 				return next(
 					new HttpException(
