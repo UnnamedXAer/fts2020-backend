@@ -27,7 +27,7 @@ export const sendMail = async (
 	try {
 		const results = await transporter.sendMail(mailOptions);
 		if (results !== void 0) {
-			debugger;
+			// debugger;
 		}
 		logger.debug('Email sent to: ' + email);
 		return results;
