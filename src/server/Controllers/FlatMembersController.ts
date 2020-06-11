@@ -249,7 +249,8 @@ export const inviteMembers: RequestHandler[] = [
 					x.status === FlatInvitationStatus.CANCELED ||
 					x.status === FlatInvitationStatus.EXPIRED ||
 					x.status === FlatInvitationStatus.REJECTED ||
-					x.status === FlatInvitationStatus.CREATED
+					x.status === FlatInvitationStatus.CREATED ||
+					x.status === FlatInvitationStatus.SEND_ERROR
 				);
 			});
 
