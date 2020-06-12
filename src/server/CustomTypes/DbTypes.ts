@@ -40,6 +40,7 @@ export const db = {
 			'createAt',
 			'createBy',
 			'token',
+			'actionBy'
 		],
 		flatMembers: ['id', 'flatId', 'userId', 'addedBy', 'addedAt'],
 	},
@@ -97,11 +98,11 @@ export interface FlatInvitationRow {
 	emailAddress: string;
 	createBy: number;
 	createAt: Date;
-	sendDate?: Date;
+	sendDate: Date | null;
 	actionDate: Date;
 	status: FlatInvitationStatus;
 	token: string;
-	actionBy: number;
+	actionBy: number | null;
 }
 
 export interface FlatMembersRow {

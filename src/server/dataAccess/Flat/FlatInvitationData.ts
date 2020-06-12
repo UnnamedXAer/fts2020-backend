@@ -1,9 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
-import FlatInvitationModel from '../../models/FlatInvitation';
+import FlatInvitationModel, {
+	FlatInvitationPresentationModel,
+} from '../../models/FlatInvitation';
 import knex from '../../../db';
 import logger from '../../../logger';
 import { FlatInvitationRow, db } from '../../customTypes/DbTypes';
 import { FlatInvitationStatus } from '../../customTypes/DbTypes';
+import UserData from '../User/UserData';
+import FlatData from './FlatData';
 
 class FlatInvitationData {
 	static async getById(id: number) {
@@ -90,22 +94,52 @@ class FlatInvitationData {
 		}
 	}
 
-	static async getByUserId(id: number) {
+	static async getByUserEmail(emailAddress: string) {
 		try {
 			const results: FlatInvitationRow[] = await knex
 				.select(db.CommonCols.flatInvitation)
-				.from('task')
-				.join('appUser', { 'appUser.id': 'flatInvitation.id' })
-				.where({ 'appUser.id': id });
+				.from('flatInvitation')
+				.where({ emailAddress })
+				.orderBy('createAt', 'desc');
 
 			const invitations = results.map(this.mapInvitationsDataToModel);
 
-			logger.debug(
-				'[FlatInvitationData].getByUserId FlatId: %s, invitations count: %s',
-				id,
-				invitations.length
+			const invitationsFullInfo = await Promise.all(
+				invitations.map(async (invitation) => {
+					const sender = await UserData.getById(invitation.createBy);
+					const invitedPerson = await UserData.getByEmailAddress(
+						invitation.emailAddress
+					);
+					const flat = await FlatData.getById(invitation.flatId);
+					const flatOwner = await UserData.getById(flat!.createBy!);
+					const actionPerson = invitation.actionBy
+						? await UserData.getById(invitation.actionBy)
+						: null;
+
+					return new FlatInvitationPresentationModel({
+						id: invitation.id!,
+						token: invitation.token,
+						status: invitation.status,
+						sendDate: invitation.sendDate,
+						actionDate: invitation.actionDate!,
+						createAt: invitation.createAt,
+						sender: sender!,
+						invitedPerson: invitedPerson
+							? invitedPerson
+							: invitation.emailAddress,
+						flat: flat!,
+						flatOwner: flatOwner!,
+						actionBy: actionPerson,
+					});
+				})
 			);
-			return invitations;
+
+			logger.debug(
+				'[FlatInvitationData].getByUserEmail email: %s, invitations count: %s',
+				emailAddress,
+				invitationsFullInfo.length
+			);
+			return invitationsFullInfo;
 		} catch (err) {
 			logger.debug('[FlatInvitationData].getByUserId error: %o', err);
 			throw err;
@@ -127,6 +161,7 @@ class FlatInvitationData {
 			token: uuidv4(),
 			actionBy: loggedUserId,
 			actionDate: currentDate,
+			sendDate: null,
 		}));
 
 		try {
@@ -160,7 +195,11 @@ class FlatInvitationData {
 		}
 	}
 
-	static async update(id: number, status: FlatInvitationStatus) {
+	static async update(
+		id: number,
+		status: FlatInvitationStatus,
+		loggedUserId: number
+	) {
 		const currentDate = new Date();
 
 		let actionDate: Date | undefined;
@@ -182,6 +221,7 @@ class FlatInvitationData {
 			id: id,
 			status: status,
 			actionDate,
+			actionBy: loggedUserId,
 			sendDate,
 		};
 
@@ -215,6 +255,7 @@ class FlatInvitationData {
 			actionDate: row.actionDate,
 			status: row.status,
 			token: row.token,
+			actionBy: row.actionBy,
 		});
 	}
 }

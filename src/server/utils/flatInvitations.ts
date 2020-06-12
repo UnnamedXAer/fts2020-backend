@@ -58,7 +58,8 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 			sendSuccessfully = true;
 			await FlatInvitationData.update(
 				inv.id!,
-				FlatInvitationStatus.PENDING
+				FlatInvitationStatus.PENDING,
+				inv.createBy
 			);
 			logger.debug(
 				'[sendInvitationsToFlat] invitations: %s send.',
@@ -74,7 +75,8 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 				try {
 					await FlatInvitationData.update(
 						inv.id!,
-						FlatInvitationStatus.SEND_ERROR
+						FlatInvitationStatus.SEND_ERROR,
+						inv.createBy
 					);
 				} catch (err) {
 					logger.error(

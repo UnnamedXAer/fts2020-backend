@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { getFlats, create, deleteFlat } from '../controllers/FlatsController';
 import {
-	inviteMembers,
 	deleteMembers,
 	getMembers,
-	getInvitations,
 } from '../controllers/FlatMembersController';
 import flatTasksRouter from './FlatTasksRouter';
+import {
+	getFlatInvitations,
+	inviteMembers,
+} from '../controllers/FlatInvitationsController';
 const router = Router({ mergeParams: true });
 
 router.get('/', getFlats);
@@ -19,6 +21,6 @@ router.get('/:flatId/members', getMembers);
 router.post('/:flatId/members/invite', inviteMembers);
 router.delete('/:flatId/members', deleteMembers);
 
-router.get('/:flatId/invitations', getInvitations);
+router.get('/:flatId/invitations', getFlatInvitations);
 
 export default router;
