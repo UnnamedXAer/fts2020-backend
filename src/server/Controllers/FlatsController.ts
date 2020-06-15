@@ -3,7 +3,7 @@ import HttpStatus from 'http-status-codes';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
 import FlatModel from '../models/FlatModel';
-import { body, validationResult, query } from 'express-validator';
+import { body, validationResult, query, param } from 'express-validator';
 import logger from '../../logger';
 import { getLoggedUserId, getLoggedUser } from '../utils/authUser';
 
@@ -43,6 +43,46 @@ export const getFlats: RequestHandler[] = [
 			const flats = await FlatData.getByMember(userId);
 
 			res.status(HttpStatus.OK).send(flats);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+		}
+	},
+];
+
+export const getFlat: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	async (req, res, next) => {
+		const id = (req.params.id as unknown) as number;
+		const loggedUserId = getLoggedUserId(req);
+		logger.debug(
+			'[GET] /flats/%s a user %s try to get all flats: %s',
+			id,
+			loggedUserId
+		);
+
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
+			return next(
+				new HttpException(
+					HttpStatus.UNPROCESSABLE_ENTITY,
+					'Invalid parameter.',
+					{
+						errorsArray,
+					}
+				)
+			);
+		}
+
+		try {
+			const flat = await FlatData.getById(id);
+			if (flat) {
+				res.status(HttpStatus.OK).send(flat);
+			} else {
+				res.sendStatus(HttpStatus.NO_CONTENT);
+			}
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}

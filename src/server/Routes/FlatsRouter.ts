@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getFlats, create, deleteFlat } from '../controllers/FlatsController';
+import {
+	getFlats,
+	create,
+	deleteFlat,
+	getFlat,
+} from '../controllers/FlatsController';
 import {
 	deleteMembers,
 	getMembers,
@@ -11,6 +16,7 @@ import {
 } from '../controllers/FlatInvitationsController';
 const router = Router({ mergeParams: true });
 
+router.get('/:id', getFlat);
 router.get('/', getFlats);
 router.post('/', create);
 router.delete('/:id', deleteFlat);
