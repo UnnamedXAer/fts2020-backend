@@ -17,32 +17,33 @@ export const app = express();
 app.use(
 	cors({
 		origin: `http://localhost:${process.env.CLIENT_PORT}`,
-		credentials: true
+		credentials: true,
 	})
 );
 app.use(
 	express.json({
-		limit: '25mb'
+		limit: '25mb',
 	})
 );
 app.use(
 	express.urlencoded({
 		extended: true,
-		limit: '25mb'
+		limit: '25mb',
 	})
 );
 
 const store = new KnexSessionStore({
 	knex: require('../db'),
-	tablename: 'sessions' // optional. Defaults to 'sessions'
+	tablename: 'sessions', // optional. Defaults to 'sessions'
 });
 
 const expressSession = session({
-	secret: 'tmpSecret',
+	secret: process.env.SESSION_SECRET || 'default-session-secret',
 	resave: false,
 	saveUninitialized: true,
 	store: store,
 	// cookie: {secure: true}
+	cookie: { maxAge: 1000 * 60 * 60 * 24 * 365 },
 });
 
 app.use(expressSession);
@@ -58,7 +59,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // catch 404 and forward to error handler
-app.use(function(_req: Request, _res: Response, next: NextFunction) {
+app.use(function (_req: Request, _res: Response, next: NextFunction) {
 	next(createError(404));
 });
 
