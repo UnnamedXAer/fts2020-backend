@@ -149,10 +149,10 @@ export const register: RequestHandler[] = [
 ];
 
 export const logOut: RequestHandler = (req, res, _) => {
-	const user: UserModel = req.user as UserModel;
+	const user = req.user as UserModel | undefined;
 	logger.debug(
 		'/auth/logout : User %s is about to logOut',
-		user.emailAddress
+		user?.emailAddress
 	);
 	req.logout();
 	res.sendStatus(200);
