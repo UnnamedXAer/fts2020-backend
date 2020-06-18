@@ -6,7 +6,8 @@ export class UserRegisterModel {
         public userName: string,
         public password: string,
         public confirmPassword: string,
-        public provider: Provider
+		public provider: Provider,
+		public avatarUrl?: string
     ) { }
 }
 

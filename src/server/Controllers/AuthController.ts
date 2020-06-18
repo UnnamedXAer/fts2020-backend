@@ -76,6 +76,12 @@ export const register: RequestHandler[] = [
 		.withMessage('User Name must be 2+ chars long.')
 		.isLength({ max: 50 })
 		.withMessage('User Name must be be 50 max chars long.'),
+	body('avatarUrl')
+		.optional()
+		.if((value: any) => value !== '')
+		.trim()
+		.isURL()
+		.withMessage('Avatar Url is not correct.'),
 	async (req, res, next) => {
 		logger.info('/auth/register a user try to register with data %o', {
 			...req.body,
@@ -99,6 +105,7 @@ export const register: RequestHandler[] = [
 			password,
 			confirmPassword,
 			userName,
+			avatarUrl,
 			provider = 'local',
 		} = <UserRegisterModel>req.body;
 
@@ -112,7 +119,8 @@ export const register: RequestHandler[] = [
 			userName,
 			hashedPassword,
 			confirmPassword,
-			provider
+			provider,
+			avatarUrl
 		);
 
 		let user: UserModel;

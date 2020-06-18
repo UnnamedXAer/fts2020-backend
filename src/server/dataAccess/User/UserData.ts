@@ -116,6 +116,7 @@ class UserData {
 				userName: user.userName,
 				password: user.password,
 				provider: user.provider,
+				avatarUrl: user.avatarUrl,
 				joinDate: new Date(),
 				active: true,
 			};
