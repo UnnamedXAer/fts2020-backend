@@ -17,7 +17,7 @@ export const logIn: RequestHandler[] = [
 		.withMessage('Email Address is required.')
 		.isEmail()
 		.withMessage('Invalid Email Address'),
-	body('password').exists(),
+	body('password').exists().withMessage('Password is required.'),
 	(req, res, next) => {
 		const { emailAddress } = req.body;
 		logger.info(
@@ -62,10 +62,8 @@ export const register: RequestHandler[] = [
 		}),
 	body(
 		'password',
-		// 'Password must be 6+ chars long, contain number and uppercase and lowercase letter.'
-		'Minimum eight characters, at least one letter and one number'
+		'Minimum 6 characters, at least one letter and one number'
 	).matches(new RegExp(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)),
-	// new RegExp(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/)
 	body('confirmPassword').custom(async (value, { req }) => {
 		if (value !== req.body.password) {
 			throw new Error('Password confirmation does not match password.');
