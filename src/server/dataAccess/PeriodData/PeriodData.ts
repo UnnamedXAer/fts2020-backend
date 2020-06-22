@@ -4,6 +4,7 @@ import { TaskPeriodsRow, TaskPeriodsFullRow } from '../../customTypes/DbTypes';
 import TaskPeriodModel, {
 	TaskPeriodFullModel,
 	TaskPeriodUserModel,
+	TaskPeriodCurrentModel,
 } from '../../models/TaskPeriodModel';
 import moment from 'moment';
 import TaskData from '../Task/TaskData';
@@ -61,6 +62,7 @@ class PeriodData {
 				.select(this.periodFullRow)
 				.from('taskPeriods as tp')
 				.join('appUser as asg', { 'asg.id': 'tp.assignedTo' })
+				.join('task as t', { 't.id': 'tp.taskId' })
 				.leftJoin('appUser as cb', {
 					'cb.id': 'tp.completedBy',
 				})
@@ -74,6 +76,47 @@ class PeriodData {
 			return period;
 		} catch (err) {
 			logger.debug('[PeriodData].getFullModelById error: %o', err);
+			throw err;
+		}
+	}
+	static async getUserCurrent(userId: number) {
+		const currentDateMidnight = moment().startOf('day').toDate();
+		try {
+			const results = await knex
+				.select<TaskPeriodCurrentModel[]>([
+					{ id: 'tp.id' },
+					{ taskId: 't.id' },
+					{ startDate: 'tp.startDate' },
+					{ endDate: 'tp.endDate' },
+					{ taskName: 't.title' },
+				])
+				.from('taskPeriods as tp')
+				.join('task as t', { 't.id': 'tp.taskId' })
+				.whereNull('tp.completedBy')
+				.andWhere({ 'tp.assignedTo': userId })
+				.andWhereRaw(
+					'date(?) BETWEEN date("tp"."startDate") and date("tp"."endDate")',
+					[currentDateMidnight]
+				)
+				.orderByRaw(
+					'date("tp"."endDate"), date("tp"."startDate") desc'
+				);
+				
+			const periods = results.map(
+				(period) =>
+					new TaskPeriodCurrentModel({
+						...period,
+					})
+			);
+
+			logger.debug(
+				'[PeriodData].getUserCurrent userId: %s, results count %s',
+				userId,
+				periods.length
+			);
+			return periods;
+		} catch (err) {
+			logger.debug('[PeriodData].getUserCurrent error: %o', err);
 			throw err;
 		}
 	}

@@ -8,6 +8,7 @@ import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import { body, validationResult, param } from 'express-validator';
 import PeriodData from '../dataAccess/PeriodData/PeriodData';
+import logger from '../../logger';
 
 export const generatePeriods: RequestHandler[] = [
 	param('taskId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
@@ -115,6 +116,18 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 			taskId
 		);
 		res.status(HttpStatus.OK).json(existingTaskPeriods);
+	} catch (err) {
+		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+	}
+};
+
+export const getUserCurrentPeriods: RequestHandler = async (req, res, next) => {
+	const signedInUserId = getLoggedUserId(req);
+	logger.debug('[GET] periods/current user (%s)', signedInUserId);
+
+	try {
+		const currentPeriods = await PeriodData.getUserCurrent(signedInUserId);
+		res.status(HttpStatus.OK).json(currentPeriods);
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}

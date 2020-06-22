@@ -67,3 +67,21 @@ export class TaskPeriodFullModel {
 		this.completedAt = completedAt;
 	}
 }
+
+export class TaskPeriodCurrentModel {
+	id: number;
+	taskId: number;
+	taskName: string;
+	startDate: Date;
+	endDate: Date;
+
+	constructor(params: TaskPeriodCurrentModel = {} as TaskPeriodCurrentModel) {
+		const { id, taskId, startDate, endDate, taskName } = params;
+
+		this.id = id;
+		this.taskId = taskId;
+		this.taskName = taskName;
+		this.startDate = startDate;
+		this.endDate = endDate;
+	}
+}
