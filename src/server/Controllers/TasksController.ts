@@ -201,7 +201,6 @@ export const create: RequestHandler[] = [
 			members,
 		} = req.body as TaskModel;
 
-		let flatMembers: number[];
 		try {
 			const isUserFlatMember = await FlatData.isUserFlatMember(
 				signedIdUserId,
@@ -215,32 +214,44 @@ export const create: RequestHandler[] = [
 					)
 				);
 			}
-
-			flatMembers = await (await FlatData.getMembers(flatId)).map(
-				(x) => x.id
-			);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
 
-		const membersValid = members!.every((member) =>
-			flatMembers.includes(member)
-		);
+		let flatMembers: number[]
+		let membersValid = members === void 0;
+		const notIncludedMembers: number[] = [];
 
 		if (!membersValid) {
-			return next(
-				new HttpException(
-					HttpStatus.UNAUTHORIZED,
-					'Unauthorized access - You tried to add user to task, which is not member of this flat.'
-				)
-			);
+			try {
+				flatMembers = await (await FlatData.getMembers(flatId)).map(
+					(x) => x.id
+				);
+				membersValid = members === void 0 || members.every((member) =>
+					flatMembers.includes(member)
+				);
+
+			} catch (err) {
+				next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+			}
+
+			if (!membersValid) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You tried to add user to task, which is not member of this flat.'
+					)
+				);
+			}
+			for (let i = 0; i < members!.length; i++) {
+				if (!notIncludedMembers.includes(members![i])) {
+					notIncludedMembers.push(members![i]);
+				}
+			}
 		}
 
-		const notIncludedMembers: number[] = [];
-		for (let i = 0; i < members!.length; i++) {
-			if (!notIncludedMembers.includes(members![i])) {
-				notIncludedMembers.push(members![i]);
-			}
+		if (!notIncludedMembers.includes(signedIdUserId)) {
+			notIncludedMembers.push(signedIdUserId);
 		}
 
 		const taskToCreate = new TaskModel({
