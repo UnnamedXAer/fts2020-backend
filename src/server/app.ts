@@ -11,6 +11,7 @@ import router from './routes';
 import { expressWinstonLogger } from '../logger/expressLogger';
 const KnexSessionStore = require('connect-session-knex')(session);
 import passportConfig from './auth/passport';
+import { SESSION_DURATION } from '../config/config';
 passportConfig(passport);
 
 export const app = express();
@@ -43,7 +44,7 @@ const expressSession = session({
 	saveUninitialized: true,
 	store: store,
 	// cookie: {secure: true}
-	cookie: { maxAge: 1000 * 60 * 60 * 24 * 365 },
+	cookie: { maxAge: SESSION_DURATION },
 });
 
 app.use(expressSession);

@@ -1,1 +1,1 @@
-export const SESSION_DURATION = 1000 * 60 * 60 * 24;
+export const SESSION_DURATION = 1000 * 60 * 60 * 24 * 365;
