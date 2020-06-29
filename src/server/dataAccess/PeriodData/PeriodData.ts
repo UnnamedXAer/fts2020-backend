@@ -11,19 +11,20 @@ import TaskData from '../Task/TaskData';
 import { updateDates } from '../../utils/TaskTimePeriod';
 
 class PeriodData {
-	private static periodFullRow = [
-		'tp.id',
-		'tp.taskId',
-		'tp.startDate',
-		'tp.endDate',
-		'tp.completedAt',
-		{ asgEmail: 'asg.emailAddress' },
-		{ asgName: 'asg.userName' },
-		{ asgId: 'asg.id' },
-		{ cbEmail: 'cb.emailAddress' },
-		{ cbName: 'cb.userName' },
-		{ cbId: 'cb.id' },
-	];
+	private static periodFullModelSQL = `select "tp"."id",
+		"tp"."taskId",
+		date_trunc('day', "tp"."startDate") as "startDate",
+		date_trunc('day', "tp"."endDate") as "endDate", 
+		"tp"."completedAt",
+		"asg"."emailAddress" as "asgEmail",
+		"asg"."userName" as "asgName",
+		"asg"."id" as "asgId",
+		"cb"."emailAddress" as "cbEmail",
+		"cb"."userName" as "cbName",
+		"cb"."id" as "cbId" 
+		from "taskPeriods" as "tp" 
+		inner join "appUser" as "asg" on "asg"."id" = "tp"."assignedTo" 
+		left join "appUser" as "cb" on "cb"."id" = "tp"."completedBy" `;
 
 	static async getById(id: number) {
 		try {
@@ -58,19 +59,15 @@ class PeriodData {
 
 	static async getFullModelById(id: number) {
 		try {
-			const results = await knex
-				.select(this.periodFullRow)
-				.from('taskPeriods as tp')
-				.join('appUser as asg', { 'asg.id': 'tp.assignedTo' })
-				.join('task as t', { 't.id': 'tp.taskId' })
-				.leftJoin('appUser as cb', {
-					'cb.id': 'tp.completedBy',
-				})
-				.where({ 'tp.id': id });
+			const results = await knex.raw(
+				this.periodFullModelSQL + ` where tp.id = ?`,
+				id
+			);
 
-			const period = results[0]
-				? this.mapPeriodFullRowDataToModel(results[0])
-				: null;
+			const period =
+				results.rows && results.rows[0]
+					? this.mapPeriodFullRowDataToModel(results[0])
+					: null;
 
 			logger.debug('[PeriodData].getFullModelById %s is: %o', id, period);
 			return period;
@@ -101,7 +98,7 @@ class PeriodData {
 				.orderByRaw(
 					'date("tp"."endDate"), date("tp"."startDate") desc'
 				);
-				
+
 			const periods = results.map(
 				(period) =>
 					new TaskPeriodCurrentModel({
@@ -123,26 +120,24 @@ class PeriodData {
 
 	static async getFullModelByTaskId(taskId: number) {
 		try {
-			const results = await knex
-				.select(this.periodFullRow)
-				.from('taskPeriods as tp')
-				.join('appUser as asg', { 'asg.id': 'tp.assignedTo' })
-				.leftJoin('appUser as cb', {
-					'cb.id': 'tp.completedBy',
-				})
-				.where({ taskId })
-				.orderBy('tp.startDate');
+			const results = await knex.raw(
+				this.periodFullModelSQL +
+					` where "taskId" = ? order by "tp"."startDate"`,
+				taskId
+			);
 
-			const taskPeriods = results.map(this.mapPeriodFullRowDataToModel);
+			const taskPeriods = results.rows
+				? results.rows.map(this.mapPeriodFullRowDataToModel)
+				: [];
 
 			logger.debug(
-				'[PeriodData].getPeriodsByTaskId task Id: %s, periods count: %s',
+				'[PeriodData].getFullModelByTaskId task Id: %s, periods count: %s',
 				taskId,
 				taskPeriods.length
 			);
 			return taskPeriods;
 		} catch (err) {
-			logger.debug('[PeriodData].getPeriodsByTaskId error: %o', err);
+			logger.debug('[PeriodData].getFullModelByTaskId error: %o', err);
 			throw err;
 		}
 	}
