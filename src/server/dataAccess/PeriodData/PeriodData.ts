@@ -119,7 +119,7 @@ class PeriodData {
 		}
 	}
 
-	static async getFullModelByTaskId(taskId: number) {
+	static async getFullModelsByTaskId(taskId: number) {
 		try {
 			const results = await knex.raw(
 				this.periodFullModelSQL +
@@ -153,12 +153,24 @@ class PeriodData {
 		};
 
 		try {
-			await knex('taskPeriods')
+			const results = await knex('taskPeriods as tp')
 				.update(updateData)
-				.where({ id: period.id });
+				.whereNull('completedBy')
+				.andWhere({ 'tp.id': period.id })
+				.whereNotExists(function () {
+					return this.select('id')
+						.from('task as t')
+						.whereRaw('"t"."id" = "tp"."taskId"')
+						.andWhere({ 't.active': false });
+				});
+
+			if (results === 0) {
+				throw new Error(
+					`Period ${period.id}, could not updated due to not fulfilled conditions.`
+				);
+			}
 
 			const taskPeriod = await this.getFullModelById(period.id!);
-
 			logger.debug(
 				'[PeriodData].updatePeriod updated period: %o',
 				taskPeriod

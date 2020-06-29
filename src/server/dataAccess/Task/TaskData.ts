@@ -300,7 +300,7 @@ class TaskData {
 		try {
 			const results = await knex('taskPeriods').insert(periodsData);
 
-			const currentTaskPeriods = await PeriodData.getFullModelByTaskId(
+			const currentTaskPeriods = await PeriodData.getFullModelsByTaskId(
 				taskId
 			);
 

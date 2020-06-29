@@ -32,7 +32,7 @@ export const generatePeriods: RequestHandler[] = [
 
 		try {
 			task = await TaskData.getById(taskId);
-			const existingTaskPeriods = await PeriodData.getFullModelByTaskId(
+			const existingTaskPeriods = await PeriodData.getFullModelsByTaskId(
 				taskId
 			);
 			periodsAlreadyGenerated = existingTaskPeriods.length > 0;
@@ -112,7 +112,7 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	}
 
 	try {
-		const existingTaskPeriods = await PeriodData.getFullModelByTaskId(
+		const existingTaskPeriods = await PeriodData.getFullModelsByTaskId(
 			taskId
 		);
 		res.status(HttpStatus.OK).json(existingTaskPeriods);
@@ -187,6 +187,15 @@ export const completeTaskPeriod: RequestHandler[] = [
 			);
 		}
 
+		if (!task.active) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'The task to which the period is assigned is closed.'
+				)
+			);
+		}
+
 		const periodPart = new TaskPeriodModel({
 			completedBy: signedInUserId,
 			id: id,
@@ -255,6 +264,15 @@ export const reassignTaskPeriod: RequestHandler[] = [
 				new HttpException(
 					HttpStatus.CONFLICT,
 					'Task Period already completed.'
+				)
+			);
+		}
+
+		if (!task.active) {
+			return next(
+				new HttpException(
+					HttpStatus.CONFLICT,
+					'The task to which the period is assigned is closed.'
 				)
 			);
 		}
