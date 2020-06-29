@@ -91,6 +91,7 @@ class PeriodData {
 				.join('task as t', { 't.id': 'tp.taskId' })
 				.whereNull('tp.completedBy')
 				.andWhere({ 'tp.assignedTo': userId })
+				.andWhere({ 't.active': true })
 				.andWhereRaw(
 					'date(?) BETWEEN date("tp"."startDate") and date("tp"."endDate")',
 					[currentDateMidnight]
