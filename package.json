@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "echo \"Error: no start script\" && exit 1",
     "migrate:make": "cross-env TRACE_LEVEL=\"Silly\" knex -x ts --cwd src/db/ migrate:make",
+    "migrate:up": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:up",
     "migrate:latest": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:latest",
     "migrate:down-to": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:down",
     "migrate:down": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:down",
