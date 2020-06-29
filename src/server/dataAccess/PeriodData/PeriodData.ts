@@ -66,7 +66,7 @@ class PeriodData {
 
 			const period =
 				results.rows && results.rows[0]
-					? this.mapPeriodFullRowDataToModel(results[0])
+					? this.mapPeriodFullRowDataToModel(results.rows[0])
 					: null;
 
 			logger.debug('[PeriodData].getFullModelById %s is: %o', id, period);
