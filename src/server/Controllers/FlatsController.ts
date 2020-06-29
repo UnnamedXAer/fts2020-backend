@@ -166,35 +166,57 @@ export const create: RequestHandler[] = [
 	},
 ];
 
-export const deleteFlat: RequestHandler = async (req, res, next) => {
-	const { id } = req.params;
-	const signedInUserId = getLoggedUserId(req);
-	logger.debug(
-		'[DELETE] /flats/ user (%s) try to delete flat: %s',
-		signedInUserId,
-		id
-	);
-
-	const idAsNum = parseInt(id, 10);
-	if (+id !== idAsNum) {
-		return next(
-			new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+export const updateFlat: RequestHandler[] = [
+	param('id').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	body('name')
+		.optional({ nullable: true })
+		.isString()
+		.withMessage('That is not correct value for name.')
+		.if((value: any) => typeof value == 'string')
+		.trim()
+		.isLength({ min: 2 })
+		.withMessage('Name must be 2+ chars long.')
+		.isLength({ max: 50 })
+		.withMessage('NAme cannot be more than 50 chars long.'),
+	body('description')
+		.optional({ nullable: true })
+		.isString()
+		.withMessage('That is not correct value for description.')
+		.trim()
+		.isLength({ max: 500 })
+		.withMessage('Description cannot be more than 500 chars long.'),
+	body('active').optional({ nullable: true }).isBoolean(),
+	async (req, res, next) => {
+		const id = (req.params.id as unknown) as number;
+		const { active, name, description } = req.body;
+		const signedInUserId = getLoggedUserId(req);
+		logger.debug(
+			'[DELETE] /flats/ user (%s) try to delete flat: %s',
+			signedInUserId,
+			id
 		);
-	}
 
-	try {
-		if (!(await FlatData.isUserFlatOwner(signedInUserId, idAsNum))) {
-			return next(
-				new HttpException(
-					HttpStatus.UNAUTHORIZED,
-					'Unauthorized access - You do not have permissions to maintain this flat.'
-				)
-			);
+		try {
+			if (!(await FlatData.isUserFlatOwner(signedInUserId, id))) {
+				return next(
+					new HttpException(
+						HttpStatus.UNAUTHORIZED,
+						'Unauthorized access - You do not have permissions to maintain this flat.'
+					)
+				);
+			}
+			let flat: FlatModel;
+			if (active === false) {
+				flat = await FlatData.disable(id, signedInUserId);
+			} else {
+				flat = await FlatData.update(
+					{ name, description, id },
+					signedInUserId
+				);
+			}
+			res.status(HttpStatus.OK).json(flat);
+		} catch (err) {
+			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-
-		await FlatData.delete(idAsNum, signedInUserId);
-		res.sendStatus(HttpStatus.OK);
-	} catch (err) {
-		next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
-	}
-};
+	},
+];

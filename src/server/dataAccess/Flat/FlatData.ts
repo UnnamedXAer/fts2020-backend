@@ -28,6 +28,7 @@ class FlatData {
 					createBy: flatRow.createBy,
 					createAt: flatRow.createAt,
 					members: membersResults.map((x) => x.userId),
+					active: flatRow.active,
 				});
 				logger.debug('[FlatData].getById flat id: %s, flat exists', id);
 
@@ -50,22 +51,23 @@ class FlatData {
 			const results: FlatRow[] = await knex('flat').select('*');
 			const flats = [];
 			for (let i = 0; i < results.length; i++) {
-				const flat = results[i];
+				const row = results[i];
 
 				const membersResults: MembersForFlatRow[] = await knex(
 					'flatMembers'
 				)
 					.select('userId')
-					.where({ flatId: flat.id });
+					.where({ flatId: row.id });
 
 				flats.push(
 					new FlatModel({
-						id: flat.id,
-						name: flat.name,
-						description: flat.description,
-						createBy: flat.createBy,
-						createAt: flat.createAt,
+						id: row.id,
+						name: row.name,
+						description: row.description,
+						createBy: row.createBy,
+						createAt: row.createAt,
 						members: membersResults.map((x) => x.userId),
+						active: row.active,
 					})
 				);
 			}
@@ -82,18 +84,19 @@ class FlatData {
 			const results: FlatRow[] = await knex('flat')
 				.select('*')
 				.where({ createBy: userId });
-			const flats = results.map(async (flat) => {
+			const flats = results.map(async (row) => {
 				const membersResults: number[] = await (
-					await this.getMembers(flat.id)
+					await this.getMembers(row.id)
 				).map((x) => x.id);
 
 				return new FlatModel({
-					id: flat.id,
-					name: flat.name,
-					description: flat.description,
-					createBy: flat.createBy,
-					createAt: flat.createAt,
+					id: row.id,
+					name: row.name,
+					description: row.description,
+					createBy: row.createBy,
+					createAt: row.createAt,
 					members: membersResults,
+					active: row.active,
 				});
 			});
 
@@ -115,18 +118,19 @@ class FlatData {
 				.select('flat.*')
 				.join('flatMembers', 'flat.id', '=', 'flatMembers.flatId')
 				.where({ userId });
-			const flatsPromises = results.map(async (flat) => {
+			const flatsPromises = results.map(async (row) => {
 				const membersResults: number[] = await (
-					await this.getMembers(flat.id)
+					await this.getMembers(row.id)
 				).map((x) => x.id);
 
 				return new FlatModel({
-					id: flat.id,
-					name: flat.name,
-					description: flat.description,
-					createBy: flat.createBy,
-					createAt: flat.createAt,
+					id: row.id,
+					name: row.name,
+					description: row.description,
+					createBy: row.createBy,
+					createAt: row.createAt,
 					members: membersResults,
+					active: row.active,
 				});
 			});
 
@@ -151,6 +155,7 @@ class FlatData {
 		const currentDate = new Date();
 
 		const flatData = {
+			active: true,
 			name: flat.name,
 			description: flat.description,
 			createAt: currentDate,
@@ -172,6 +177,7 @@ class FlatData {
 					description: flatRow.description,
 					createAt: flatRow.createAt,
 					createBy: flatRow.createBy,
+					active: flatRow.active,
 				});
 
 				const resultsMembers: number[] = await trx
@@ -197,25 +203,79 @@ class FlatData {
 		}
 	}
 
-	static async delete(id: number, userId: number) {
+	static async update(flat: Partial<FlatRow>, loggedUserId: number) {
+		const currentDate = new Date();
+
+		const flatData = {
+			description: flat.description,
+			lastModAt: currentDate,
+			lastModBy: loggedUserId,
+			name: flat.name,
+		} as Partial<FlatRow>;
+
+		try {
+			const results = await knex
+				.table('flat')
+				.update(flatData)
+				.where({ id: flat.id! })
+				.returning('*');
+
+			const updatedFlat = new FlatModel({ ...results[0] });
+
+			logger.debug('[FlatData].update flat: %o', updatedFlat);
+			return updatedFlat;
+		} catch (err) {
+			logger.debug('[FlatData].update error: %o', err);
+			throw err;
+		}
+	}
+
+	static async disable(id: number, userId: number) {
+		const currentDate = new Date();
+
 		try {
 			let results = await knex.transaction(async (trx) => {
-				await trx('flatMembers').delete().where({ flatId: id });
+				await trx('task')
+					.update({
+						active: false,
+						lastModBy: userId,
+						lastModAt: currentDate,
+					})
+					.where({ flatId: id, active: true });
 
-				const deleteFlatResults = await trx('flat')
-					.delete()
-					.where({ id });
+				const flatResults = await trx<FlatRow>('flat')
+					.update({
+						active: false,
+						lastModBy: userId,
+						lastModAt: currentDate,
+					})
+					.where({ id, active: true, createBy: userId })
+					.returning('*');
+
+				if (!flatResults || flatResults.length === 0) {
+					throw new Error(
+						`Flat ${id} could not be disabled due not fulfilled conditions.`
+					);
+				}
 
 				logger.debug(
-					'[FlatData].delete flat Id: %s, by %s, deleted count %s',
+					'[FlatData].disable flat Id: %s, by %s',
 					id,
-					userId,
-					deleteFlatResults
+					userId
 				);
-				return deleteFlatResults > 0;
+				return flatResults[0];
 			});
 
-			return results;
+			const flat = new FlatModel({
+				id: results.id,
+				name: results.name,
+				description: results.description,
+				createAt: results.createAt,
+				createBy: results.createBy,
+				active: results.active,
+			});
+
+			return flat;
 		} catch (err) {
 			logger.debug('[FlatData].delete error: %o', err);
 			throw err;

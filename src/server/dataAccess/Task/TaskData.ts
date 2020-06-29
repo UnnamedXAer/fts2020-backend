@@ -174,7 +174,7 @@ class TaskData {
 
 			const updatedTask = this.mapTaskDataToModel(results[0]);
 
-			logger.debug('[TaskData].update flat: %o', updatedTask);
+			logger.debug('[TaskData].update task: %o', updatedTask);
 			return updatedTask;
 		} catch (err) {
 			logger.debug('[TaskData].update error: %o', err);

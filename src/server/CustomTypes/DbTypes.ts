@@ -40,7 +40,7 @@ export const db = {
 			'createAt',
 			'createBy',
 			'token',
-			'actionBy'
+			'actionBy',
 		],
 		flatMembers: ['id', 'flatId', 'userId', 'addedBy', 'addedAt'],
 	},
@@ -90,6 +90,7 @@ export interface FlatRow {
 	createAt: Date;
 	lastModBy: number;
 	lastModAt: Date;
+	active: boolean;
 }
 
 export interface FlatInvitationRow {

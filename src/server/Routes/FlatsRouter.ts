@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
 	getFlats,
 	create,
-	deleteFlat,
+	updateFlat,
 	getFlat,
 } from '../controllers/FlatsController';
 import {
@@ -19,7 +19,7 @@ const router = Router({ mergeParams: true });
 router.get('/:id', getFlat);
 router.get('/', getFlats);
 router.post('/', create);
-router.delete('/:id', deleteFlat);
+router.patch('/:id', updateFlat);
 
 router.use('/:flatId/tasks', flatTasksRouter);
 
