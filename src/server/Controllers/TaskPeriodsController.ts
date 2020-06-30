@@ -87,6 +87,7 @@ export const generatePeriods: RequestHandler[] = [
 export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 	const _taskId = req.params['taskId'];
 	let task: TaskModel | null;
+	let isFlatMember: boolean = false;
 	const signedInUserId = getLoggedUserId(req);
 
 	const taskId = parseInt(_taskId, 10);
@@ -98,11 +99,14 @@ export const getTaskPeriods: RequestHandler = async (req, res, next) => {
 
 	try {
 		task = await TaskData.getById(taskId);
+		isFlatMember = task
+			? await FlatData.isUserFlatMember(signedInUserId, task.flatId!)
+			: false;
 	} catch (err) {
 		return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 	}
 
-	if (!task || !task.members!.includes(signedInUserId)) {
+	if (!isFlatMember) {
 		return next(
 			new HttpException(
 				HttpStatus.UNAUTHORIZED,
