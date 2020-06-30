@@ -65,7 +65,7 @@ export const generatePeriods: RequestHandler[] = [
 		}
 
 		try {
-			const taskPeriodsResults = await PeriodData.resetPeriods(taskId);
+			const taskPeriodsResults = await PeriodData.resetPeriods(taskId, signedInUserId);
 			if (taskPeriodsResults.info === 'no-members') {
 				return next(
 					new HttpException(

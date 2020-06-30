@@ -7,6 +7,8 @@ import {
 	MembersForFlatRow,
 } from '../../customTypes/DbTypes';
 import UserModel from '../../models/UserModel';
+import TaskData from '../Task/TaskData';
+import PeriodData from '../PeriodData/PeriodData';
 
 class FlatData {
 	static async getById(id: number) {
@@ -354,28 +356,60 @@ class FlatData {
 		}
 	}
 
-	static async deleteMembers(
+	static async deleteMember(
 		flatId: number,
-		members: number[],
+		userId: number,
 		signedInUserId: number
 	) {
 		try {
-			const membersToDelete: [number, number][] = [];
-			members.forEach((x) => {
-				if (x != signedInUserId) {
-					membersToDelete.push([x, flatId]);
-				}
+			const flat = await FlatData.getById(flatId);
+			if (flat === null) {
+				throw new Error('Could not find the flat.');
+			}
+			const tasks = await TaskData.getByFlat(flatId);
+			const deletedRowsCnt = await knex.transaction(async (trx) => {
+				let debugResults: any;
+
+				const tasksPromises: Promise<number>[] = [];
+				tasks.forEach((x) => {
+					tasksPromises.push(
+						TaskData.deleteMembers(
+							x.id!,
+							userId,
+							signedInUserId,
+							trx
+						)
+					);
+				});
+
+				debugResults = await Promise.all(tasksPromises);
+
+				debugResults = await trx('flatMembers')
+					.delete()
+					.whereNotExists(function () {
+						return this.select('id')
+							.from('flat')
+							.where({ createBy: userId, id: flatId });
+					})
+					.andWhere({ userId, flatId });
+
+				const periodsPromises: Promise<any>[] = [];
+				tasks.forEach((x) => {
+					periodsPromises.push(
+						PeriodData.resetPeriods(x.id!, signedInUserId, trx)
+					);
+				});
+
+				debugResults = await Promise.all(periodsPromises);
+				return debugResults;
 			});
 
-			const deletedRowsCnt = await knex('flatMembers')
-				.delete()
-				.whereIn(['userId', 'flatId'], membersToDelete);
-
 			logger.debug(
-				'[FlatData].deleteMembers members: %s, flat Id: s%, delete count: %o',
-				members,
+				'[FlatData].deleteMembers flatId: %s userId %s, delete count: %o, by %s',
 				flatId,
-				deletedRowsCnt
+				userId,
+				deletedRowsCnt,
+				signedInUserId
 			);
 
 			return deletedRowsCnt;

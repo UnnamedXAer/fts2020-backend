@@ -14,6 +14,7 @@ import TaskPeriodModel, {
 import UserModel from '../../models/UserModel';
 import UserTaskModel from '../../models/UserTaskModel';
 import PeriodData from '../PeriodData/PeriodData';
+import Knex from 'knex';
 
 class TaskData {
 	static async getById(id: number) {
@@ -30,7 +31,11 @@ class TaskData {
 				task = this.mapTaskDataToModel(results[0], membersResults);
 			}
 
-			logger.debug('[TaskData].getById id: %s, Task: %o', id, task);
+			logger.debug(
+				'[TaskData].getById id: %s, Task: %o',
+				id,
+				task ? task.id : null
+			);
 			return task;
 		} catch (err) {
 			throw err;
@@ -241,43 +246,120 @@ class TaskData {
 		}
 	}
 
+	static async deleteMembers(
+		taskId: number,
+		members: number[] | number | null,
+		signedInUserId: number,
+		trx?: Knex.Transaction
+	) {
+		const _knex = trx || knex;
+		try {
+			let results: number;
+			if (members === null) {
+				results = await _knex('taskMembers').delete().where({ taskId });
+			} else {
+				let membersToRemove =
+					typeof members === 'number' ? [members] : members;
+				results = await _knex('taskMembers')
+					.delete()
+					.whereIn('userId', membersToRemove)
+					.andWhere({ taskId });
+			}
+
+			logger.debug(
+				'[TaskData].deleteMembers task: %s current members cnt: %s, by %s',
+				taskId,
+				results,
+				signedInUserId
+			);
+			return results;
+		} catch (err) {
+			logger.debug('[TaskData].deleteMembers error: %o', err);
+			throw err;
+		}
+	}
+
+	static async insertMembers(
+		taskId: number,
+		members: TaskMemberModel[],
+		signedInUserId: number,
+		trx?: Knex.Transaction
+	) {
+		const _knex = trx || knex;
+		const insertDate = new Date();
+		const membersData = members.map(
+			(x) =>
+				<TaskMembersRow>{
+					userId: x.userId,
+					taskId,
+					addedAt: insertDate,
+					addedBy: signedInUserId,
+					position: x.position,
+				}
+		);
+
+		try {
+			const results: number[] = await _knex('taskMembers').insert(
+				membersData,
+				'userId'
+			);
+			// throw new Error('After inserting members to taskMembers');
+			logger.debug(
+				'[TaskData].insertMembers taskId: %s, inserted cnt: %s, by: %s',
+				taskId,
+				results.length,
+				signedInUserId
+			);
+
+			return results;
+		} catch (err) {
+			logger.debug('[TaskData].insertMembers error: %o', err);
+			throw err;
+		}
+	}
+
 	static async setMembers(
 		taskId: number,
 		members: TaskMemberModel[],
 		signedInUserId: number
 	) {
 		try {
-			const insertDate = new Date();
-			const membersData = members.map(
-				(x) =>
-					<TaskMembersRow>{
-						userId: x.userId,
-						taskId,
-						addedAt: insertDate,
-						addedBy: signedInUserId,
-						position: x.position,
-					}
-			);
+			const results = await knex.transaction(async (trx) => {
+				await this.deleteMembers(
+					taskId,
+					null,
+					// members.map((x) => x.userId!),
+					signedInUserId,
+					trx
+				);
+				// throw new Error('before inserting');
+				const insertResults = await this.insertMembers(
+					taskId,
+					members,
+					signedInUserId,
+					trx
+				);
+				// await knex('taskMembers').delete().where({ taskId });
 
-			await knex('taskMembers').delete().where({ taskId });
+				// const results: TaskMembersRow[] | {} = await trx('taskMembers')
+				// 	.insert(membersData)
+				// 	.returning(['userId', 'position']);
 
-			const results: TaskMembersRow[] | {} = await knex('taskMembers')
-				.insert(membersData)
-				.returning(['userId', 'position']);
-
-			let addedMembers: TaskMembersRow[];
-			if (Array.isArray(results)) {
-				addedMembers = results;
-			} else {
-				addedMembers = [];
-			}
+				// let addedMembers: TaskMembersRow[];
+				// if (Array.isArray(results)) {
+				// 	addedMembers = results;
+				// } else {
+				// 	addedMembers = [];
+				// }
+				return insertResults;
+			});
 			logger.debug(
-				'[TaskData].setMembers current members for: %s are: %o',
+				'[TaskData].setMembers taskId: %s current members cnt: %s, by %s',
 				taskId,
-				addedMembers
+				results,
+				signedInUserId
 			);
-
-			return addedMembers;
+			return results;
 		} catch (err) {
 			logger.debug('[TaskData].setMembers error: %o', err);
 			throw err;

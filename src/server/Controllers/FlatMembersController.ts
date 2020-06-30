@@ -2,10 +2,9 @@ import { RequestHandler } from 'express';
 import HttpStatus from 'http-status-codes';
 import { body, validationResult, param } from 'express-validator';
 import logger from '../../logger';
-import { getLoggedUserId,} from '../utils/authUser';
+import { getLoggedUserId } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
-
 
 export const getMembers: RequestHandler[] = [
 	param('flatId').isInt().toInt(),
@@ -42,50 +41,36 @@ export const getMembers: RequestHandler[] = [
 	},
 ];
 
-export const deleteMembers: RequestHandler[] = [
-	body('members')
-		.isArray({
-			min: 1,
-		})
-		.withMessage(
-			'That are not correct values for members - not an array of positive integers.'
-		)
-		.if((value: any) => Array.isArray(value) && value.length > 0)
-		.custom((value: []) => value.length <= 100)
-		.withMessage('Invalid value')
-		.custom((value: []) => {
-			const everyOutput = value.every((x) => {
-				const output = Number.isInteger(x) && x > 0;
-				return output;
-			});
-			return everyOutput;
-		})
-		.withMessage(
-			'That are not correct values for members - not an array of positive integers.'
-		),
+export const deleteMember: RequestHandler[] = [
+	param('flatId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
+	body('userId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
 	async (req, res, next) => {
-		const flatId = req.params.flatId;
-		const members: number[] = req.body.members;
+		const { flatId } = (req.params as unknown) as {
+			flatId: number;
+		};
+		const { userId } = (req.body as unknown) as { userId: number };
 		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
-			'[DELETE] /flats/%s/members user (%s) try to delete members: %o from flat: %s',
+			'[DELETE] /flats/%s/members/ userId: %s loggedUser: %s',
 			flatId,
-			signedInUserId,
-			members,
-			flatId
+			userId,
+			signedInUserId
 		);
 
-		const flatIdAsNum = parseInt(flatId, 10);
-		if (+flatId !== flatIdAsNum) {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			let errorsArray = errors
+				.array()
+				.map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
-				new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param.')
+				new HttpException(HttpStatus.NOT_ACCEPTABLE, 'Invalid param', {
+					errorsArray,
+				})
 			);
 		}
 
 		try {
-			if (
-				!(await FlatData.isUserFlatOwner(signedInUserId, flatIdAsNum))
-			) {
+			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatId))) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
@@ -99,20 +84,9 @@ export const deleteMembers: RequestHandler[] = [
 			);
 		}
 
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
-			return next(
-				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray,
-				})
-			);
-		}
-
 		try {
-			await FlatData.deleteMembers(flatIdAsNum, members, signedInUserId);
+			const results  = await FlatData.deleteMember(flatId, userId, signedInUserId);
+			console.log(results);
 			res.sendStatus(HttpStatus.OK);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));

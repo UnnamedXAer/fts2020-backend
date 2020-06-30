@@ -6,7 +6,7 @@ import {
 	getFlat,
 } from '../controllers/FlatsController';
 import {
-	deleteMembers,
+	deleteMember,
 	getMembers,
 } from '../controllers/FlatMembersController';
 import flatTasksRouter from './FlatTasksRouter';
@@ -25,7 +25,7 @@ router.use('/:flatId/tasks', flatTasksRouter);
 
 router.get('/:flatId/members', getMembers);
 router.post('/:flatId/members/invite', inviteMembers);
-router.delete('/:flatId/members', deleteMembers);
+router.delete('/:flatId/members', deleteMember);
 
 router.get('/:flatId/invitations', getFlatInvitations);
 

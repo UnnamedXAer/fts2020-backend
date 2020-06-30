@@ -166,7 +166,7 @@ export const setMembers: RequestHandler[] = [
 				signedInUserId
 			);
 
-			await PeriodData.resetPeriods(id);
+			await PeriodData.resetPeriods(id, signedInUserId);
 
 			const updatedTaskMembers = await TaskData.getMembers(id);
 			res.status(HttpStatus.OK).json(updatedTaskMembers);

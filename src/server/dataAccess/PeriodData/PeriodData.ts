@@ -9,6 +9,11 @@ import TaskPeriodModel, {
 import moment from 'moment';
 import TaskData from '../Task/TaskData';
 import { updateDates } from '../../utils/TaskTimePeriod';
+import Knex from 'knex';
+
+export type PeriodsResetResults =
+	| { info: 'no-members' }
+	| { info: 'ok'; periods: TaskPeriodFullModel[] };
 
 class PeriodData {
 	private static periodFullModelSQL = `select "tp"."id",
@@ -183,16 +188,16 @@ class PeriodData {
 		}
 	}
 
-	static async resetPeriods(
-		taskId: number
-	): Promise<
-		{ info: 'no-members' } | { info: 'ok'; periods: TaskPeriodFullModel[] }
-	> {
+	static async deletePeriods(
+		taskId: number,
+		signedInUserId: number,
+		trx?: Knex.Transaction
+	) {
 		const currentDate = new Date();
 		const startOfCurrentDate = moment(currentDate).startOf('day').toDate();
-
+		const _knex = trx || knex;
 		try {
-			const delResults = await knex('taskPeriods')
+			const delResults = await _knex('taskPeriods')
 				.del()
 				.where({
 					taskId,
@@ -201,25 +206,59 @@ class PeriodData {
 				.andWhereRaw('date("endDate") > ? ', startOfCurrentDate);
 
 			logger.debug(
-				'[PeriodData].resetPeriods taskId %s, deleted periods cnt: %s',
+				'[PeriodData].deletePeriods taskId %s, deleted periods cnt: %s, by %s',
 				taskId,
-				delResults
+				delResults,
+				signedInUserId
 			);
 
-			const periodsResults = await this.generatePeriods(taskId);
+			return delResults;
+		} catch (err) {
+			logger.debug('[PeriodData].deletePeriods error: %o', err);
+			throw err;
+		}
+	}
 
-			if (periodsResults.info === 'no-members') {
-				return periodsResults;
-			}
+	static async resetPeriods(
+		taskId: number,
+		signedInUserId: number,
+		trx?: Knex.Transaction
+	): Promise<PeriodsResetResults> {
+		const _knex = trx || knex;
+		try {
+			const results = await _knex.transaction(async (trx) => {
+				const delResults = await this.deletePeriods(
+					taskId,
+					signedInUserId,
+					trx
+				);
 
-			const createdPeriods = await TaskData.addPeriods(
-				periodsResults.periods,
-				taskId
-			);
+				const periodsData = await this.generatePeriodsData(taskId);
 
-			logger.debug('[PeriodData].resetPeriods taskId %s', taskId);
+				if (periodsData.info === 'no-members') {
+					return periodsData as PeriodsResetResults;
+				}
 
-			return { info: 'ok', periods: createdPeriods };
+				const createdPeriods = await TaskData.addPeriods(
+					periodsData.periods,
+					taskId
+				);
+
+				logger.debug(
+					'[PeriodData].resetPeriods taskId %s, deleted periods cnt: %s, added periods cnt: %s, by: %s',
+					taskId,
+					delResults,
+					createdPeriods.length,
+					signedInUserId
+				);
+
+				return {
+					info: 'ok',
+					periods: createdPeriods,
+				} as PeriodsResetResults;
+			});
+
+			return results;
 		} catch (err) {
 			logger.debug('[PeriodData].resetPeriods error: %o', err);
 			throw err;
@@ -250,7 +289,7 @@ class PeriodData {
 		return period;
 	}
 
-	private static async generatePeriods(
+	private static async generatePeriodsData(
 		taskId: number
 	): Promise<
 		{ info: 'no-members' } | { info: 'ok'; periods: TaskPeriodModel[] }
