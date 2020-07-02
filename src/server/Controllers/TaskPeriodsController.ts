@@ -16,7 +16,6 @@ export const generatePeriods: RequestHandler[] = [
 		const taskId = (req.params.taskId as unknown) as number;
 		let task: TaskModel | null;
 		const signedInUserId = getLoggedUserId(req);
-		let periodsAlreadyGenerated: boolean;
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -32,10 +31,6 @@ export const generatePeriods: RequestHandler[] = [
 
 		try {
 			task = await TaskData.getById(taskId);
-			const existingTaskPeriods = await PeriodData.getFullModelsByTaskId(
-				taskId
-			);
-			periodsAlreadyGenerated = existingTaskPeriods.length > 0;
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
@@ -55,17 +50,11 @@ export const generatePeriods: RequestHandler[] = [
 			);
 		}
 
-		if (periodsAlreadyGenerated) {
-			return next(
-				new HttpException(
-					HttpStatus.CONFLICT,
-					'Periods are already generated for this task.'
-				)
-			);
-		}
-
 		try {
-			const taskPeriodsResults = await PeriodData.resetPeriods(taskId, signedInUserId);
+			const taskPeriodsResults = await PeriodData.resetTaskPeriods(
+				taskId,
+				signedInUserId
+			);
 			if (taskPeriodsResults.info === 'no-members') {
 				return next(
 					new HttpException(
