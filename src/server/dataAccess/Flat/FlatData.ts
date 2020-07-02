@@ -9,6 +9,7 @@ import {
 import UserModel from '../../models/UserModel';
 import TaskData from '../Task/TaskData';
 import PeriodData from '../PeriodData/PeriodData';
+import TaskModel from '../../models/TaskModel';
 
 class FlatData {
 	static async getById(id: number) {
@@ -370,16 +371,26 @@ class FlatData {
 			const deletedRowsCnt = await knex.transaction(async (trx) => {
 				let debugResults: any;
 
-				const tasksPromises: Promise<number>[] = [];
+				const tasksPromises: Promise<number | TaskModel>[] = [];
 				tasks.forEach((x) => {
-					tasksPromises.push(
-						TaskData.deleteMembers(
-							x.id!,
-							userId,
-							signedInUserId,
-							trx
-						)
-					);
+					if (x.createBy === userId) {
+						tasksPromises.push(
+							TaskData.update(
+								{ id: x.id, active: false },
+								signedInUserId,
+								trx
+							)
+						);
+					} else {
+						tasksPromises.push(
+							TaskData.deleteMembers(
+								x.id!,
+								userId,
+								signedInUserId,
+								trx
+							)
+						);
+					}
 				});
 
 				debugResults = await Promise.all(tasksPromises);

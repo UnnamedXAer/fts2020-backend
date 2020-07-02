@@ -1,10 +1,6 @@
 import knex from '../../../db';
 import logger from '../../../logger';
-import {
-	TaskRow,
-	TaskMembersRow,
-	UserRow,
-} from '../../customTypes/DbTypes';
+import { TaskRow, TaskMembersRow, UserRow } from '../../customTypes/DbTypes';
 import TaskModel from '../../models/TaskModel';
 import { TaskMemberModel } from '../../models/TaskMemberModel';
 import UserModel from '../../models/UserModel';
@@ -155,20 +151,25 @@ class TaskData {
 		}
 	}
 
-	static async update(task: Partial<TaskModel>, loggedUserId: number) {
+	static async update(
+		task: Partial<TaskModel>,
+		signedInUserId: number,
+		trx?: Knex.Transaction
+	) {
 		const currentDate = new Date();
 
 		const taskData = {
 			active: task.active,
 			description: task.description,
 			lastModAt: currentDate,
-			lastModBy: loggedUserId,
+			lastModBy: signedInUserId,
 			title: task.title,
 		} as Partial<TaskRow>;
 
+		const _knex = trx || knex;
+
 		try {
-			const results = await knex
-				.table('task')
+			const results = await _knex('task')
 				.update(taskData)
 				.where({ id: task.id! })
 				.returning('*');
@@ -352,7 +353,6 @@ class TaskData {
 			throw err;
 		}
 	}
-
 
 	private static mapTaskDataToModel(row: TaskRow, members: number[] = []) {
 		return new TaskModel({
