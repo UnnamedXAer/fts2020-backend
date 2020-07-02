@@ -153,6 +153,14 @@ export const setMembers: RequestHandler[] = [
 				);
 			}
 
+			const uniqMembers: number[] = [task.createBy!];
+
+			for (let i = 0; i < members.length; i++) {
+				if (!uniqMembers.includes(members[i])) {
+					uniqMembers.push(members[i]);
+				}
+			}
+
 			await TaskData.setMembers(
 				id,
 				members.map(
