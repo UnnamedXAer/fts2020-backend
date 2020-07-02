@@ -8,7 +8,6 @@ import FlatData from '../dataAccess/Flat/FlatData';
 import TaskData from '../dataAccess/Task/TaskData';
 import { TaskMemberModel } from '../models/TaskMemberModel';
 import TaskModel from '../models/TaskModel';
-import PeriodData from '../dataAccess/PeriodData/PeriodData';
 
 export const getMembers: RequestHandler[] = [
 	param('id').isInt().toInt(),
@@ -165,8 +164,6 @@ export const setMembers: RequestHandler[] = [
 				),
 				signedInUserId
 			);
-
-			await PeriodData.resetPeriods(id, signedInUserId);
 
 			const updatedTaskMembers = await TaskData.getMembers(id);
 			res.status(HttpStatus.OK).json(updatedTaskMembers);

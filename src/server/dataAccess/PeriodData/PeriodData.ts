@@ -188,22 +188,58 @@ class PeriodData {
 		}
 	}
 
+	static async addPeriods(
+		taskPeriods: TaskPeriodModel[],
+		taskId: number,
+		signedInUserId: number,
+		trx: Knex.Transaction
+	): Promise<TaskPeriodFullModel[]> {
+		const periodsData = taskPeriods.map((x) => {
+			return <TaskPeriodsRow>{
+				taskId: taskId,
+				assignedTo: x.assignedTo,
+				startDate: x.startDate,
+				endDate: x.endDate,
+			};
+		});
+
+		try {
+			const results = await trx('taskPeriods')
+				.insert(periodsData)
+				.returning('id');
+
+			const currentTaskPeriods = await PeriodData.getFullModelsByTaskId(
+				taskId
+			);
+
+			logger.debug(
+				'[PeriodData].addPeriods task Id: %s, periods created cnt: %s, by %s',
+				taskId,
+				results.length,
+				signedInUserId
+			);
+			return currentTaskPeriods;
+		} catch (err) {
+			logger.debug('[PeriodData].addPeriods error: %o', err);
+			throw err;
+		}
+	}
+
 	static async deletePeriods(
 		taskId: number,
 		signedInUserId: number,
-		trx?: Knex.Transaction
+		trx: Knex.Transaction
 	) {
 		const currentDate = new Date();
 		const startOfCurrentDate = moment(currentDate).startOf('day').toDate();
-		const _knex = trx || knex;
 		try {
-			const delResults = await _knex('taskPeriods')
+			const delResults = await trx('taskPeriods')
 				.del()
 				.where({
 					taskId,
 				})
 				.whereNull('completedBy')
-				.andWhereRaw('date("endDate") > ? ', startOfCurrentDate);
+				.andWhereRaw('date("endDate") >= ? ', startOfCurrentDate);
 
 			logger.debug(
 				'[PeriodData].deletePeriods taskId %s, deleted periods cnt: %s, by %s',
@@ -219,7 +255,7 @@ class PeriodData {
 		}
 	}
 
-	static async resetPeriods(
+	static async resetTaskPeriods(
 		taskId: number,
 		signedInUserId: number,
 		trx?: Knex.Transaction
@@ -233,15 +269,17 @@ class PeriodData {
 					trx
 				);
 
-				const periodsData = await this.generatePeriodsData(taskId);
+				const periodsData = await this.generatePeriodsData(taskId, trx);
 
 				if (periodsData.info === 'no-members') {
 					return periodsData as PeriodsResetResults;
 				}
 
-				const createdPeriods = await TaskData.addPeriods(
+				const createdPeriods = await this.addPeriods(
 					periodsData.periods,
-					taskId
+					taskId,
+					signedInUserId,
+					trx
 				);
 
 				logger.debug(
@@ -265,32 +303,9 @@ class PeriodData {
 		}
 	}
 
-	private static mapPeriodFullRowDataToModel(
-		row: TaskPeriodsFullRow
-	): TaskPeriodFullModel {
-		const period = new TaskPeriodFullModel({
-			id: row.id,
-			taskId: row.taskId,
-			assignedTo: new TaskPeriodUserModel({
-				emailAddress: row.asgEmail,
-				userName: row.asgName,
-			}),
-			startDate: row.startDate,
-			endDate: row.endDate,
-			completedAt: row.completedAt ? row.completedAt : null,
-			completedBy: row.cbEmail
-				? new TaskPeriodUserModel({
-						emailAddress: row.cbEmail,
-						userName: row.cbName!,
-				  })
-				: null,
-		});
-
-		return period;
-	}
-
 	private static async generatePeriodsData(
-		taskId: number
+		taskId: number,
+		trx: Knex.Transaction
 	): Promise<
 		{ info: 'no-members' } | { info: 'ok'; periods: TaskPeriodModel[] }
 	> {
@@ -307,7 +322,7 @@ class PeriodData {
 			};
 		}
 
-		const lastDatePeriodsResults = await knex('taskPeriods')
+		const lastDatePeriodsResults = await trx('taskPeriods')
 			.max('endDate')
 			.where({ taskId });
 
@@ -349,6 +364,30 @@ class PeriodData {
 		}
 
 		return { info: 'ok', periods: taskPeriods };
+	}
+
+	private static mapPeriodFullRowDataToModel(
+		row: TaskPeriodsFullRow
+	): TaskPeriodFullModel {
+		const period = new TaskPeriodFullModel({
+			id: row.id,
+			taskId: row.taskId,
+			assignedTo: new TaskPeriodUserModel({
+				emailAddress: row.asgEmail,
+				userName: row.asgName,
+			}),
+			startDate: row.startDate,
+			endDate: row.endDate,
+			completedAt: row.completedAt ? row.completedAt : null,
+			completedBy: row.cbEmail
+				? new TaskPeriodUserModel({
+						emailAddress: row.cbEmail,
+						userName: row.cbName!,
+				  })
+				: null,
+		});
+
+		return period;
 	}
 }
 

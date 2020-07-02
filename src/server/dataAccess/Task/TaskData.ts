@@ -3,14 +3,10 @@ import logger from '../../../logger';
 import {
 	TaskRow,
 	TaskMembersRow,
-	TaskPeriodsRow,
 	UserRow,
 } from '../../customTypes/DbTypes';
 import TaskModel from '../../models/TaskModel';
 import { TaskMemberModel } from '../../models/TaskMemberModel';
-import TaskPeriodModel, {
-	TaskPeriodFullModel,
-} from '../../models/TaskPeriodModel';
 import UserModel from '../../models/UserModel';
 import UserTaskModel from '../../models/UserTaskModel';
 import PeriodData from '../PeriodData/PeriodData';
@@ -250,17 +246,16 @@ class TaskData {
 		taskId: number,
 		members: number[] | number | null,
 		signedInUserId: number,
-		trx?: Knex.Transaction
+		trx: Knex.Transaction
 	) {
-		const _knex = trx || knex;
 		try {
 			let results: number;
 			if (members === null) {
-				results = await _knex('taskMembers').delete().where({ taskId });
+				results = await trx('taskMembers').delete().where({ taskId });
 			} else {
 				let membersToRemove =
 					typeof members === 'number' ? [members] : members;
-				results = await _knex('taskMembers')
+				results = await trx('taskMembers')
 					.delete()
 					.whereIn('userId', membersToRemove)
 					.andWhere({ taskId });
@@ -283,9 +278,8 @@ class TaskData {
 		taskId: number,
 		members: TaskMemberModel[],
 		signedInUserId: number,
-		trx?: Knex.Transaction
+		trx: Knex.Transaction
 	) {
-		const _knex = trx || knex;
 		const insertDate = new Date();
 		const membersData = members.map(
 			(x) =>
@@ -299,11 +293,11 @@ class TaskData {
 		);
 
 		try {
-			const results: number[] = await _knex('taskMembers').insert(
+			const results: number[] = await trx('taskMembers').insert(
 				membersData,
 				'userId'
 			);
-			// throw new Error('After inserting members to taskMembers');
+
 			logger.debug(
 				'[TaskData].insertMembers taskId: %s, inserted cnt: %s, by: %s',
 				taskId,
@@ -324,79 +318,41 @@ class TaskData {
 		signedInUserId: number
 	) {
 		try {
-			const results = await knex.transaction(async (trx) => {
-				await this.deleteMembers(
+			await knex.transaction(async (trx) => {
+				let debugResults: any;
+				debugResults = await PeriodData.deletePeriods(
 					taskId,
-					null,
-					// members.map((x) => x.userId!),
 					signedInUserId,
 					trx
 				);
-				// throw new Error('before inserting');
-				const insertResults = await this.insertMembers(
+
+				debugResults = await this.deleteMembers(
+					taskId,
+					null,
+					signedInUserId,
+					trx
+				);
+
+				debugResults = await this.insertMembers(
 					taskId,
 					members,
 					signedInUserId,
 					trx
 				);
-				// await knex('taskMembers').delete().where({ taskId });
 
-				// const results: TaskMembersRow[] | {} = await trx('taskMembers')
-				// 	.insert(membersData)
-				// 	.returning(['userId', 'position']);
-
-				// let addedMembers: TaskMembersRow[];
-				// if (Array.isArray(results)) {
-				// 	addedMembers = results;
-				// } else {
-				// 	addedMembers = [];
-				// }
-				return insertResults;
+				return debugResults;
 			});
 			logger.debug(
-				'[TaskData].setMembers taskId: %s current members cnt: %s, by %s',
+				'[TaskData].setMembers taskId: %s, by %s',
 				taskId,
-				results,
 				signedInUserId
 			);
-			return results;
 		} catch (err) {
 			logger.debug('[TaskData].setMembers error: %o', err);
 			throw err;
 		}
 	}
 
-	static async addPeriods(
-		taskPeriods: TaskPeriodModel[],
-		taskId: number
-	): Promise<TaskPeriodFullModel[]> {
-		const periodsData = taskPeriods.map((x) => {
-			return <TaskPeriodsRow>{
-				taskId: taskId,
-				assignedTo: x.assignedTo,
-				startDate: x.startDate,
-				endDate: x.endDate,
-			};
-		});
-
-		try {
-			const results = await knex('taskPeriods').insert(periodsData);
-
-			const currentTaskPeriods = await PeriodData.getFullModelsByTaskId(
-				taskId
-			);
-
-			logger.debug(
-				'[TaskData].addPeriods  task Id: %s, periods created: %o',
-				taskId,
-				results
-			);
-			return currentTaskPeriods;
-		} catch (err) {
-			logger.debug('[TaskData].addPeriods error: %o', err);
-			throw err;
-		}
-	}
 
 	private static mapTaskDataToModel(row: TaskRow, members: number[] = []) {
 		return new TaskModel({

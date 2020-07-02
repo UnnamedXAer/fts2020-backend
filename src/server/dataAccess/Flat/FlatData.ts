@@ -396,7 +396,7 @@ class FlatData {
 				const periodsPromises: Promise<any>[] = [];
 				tasks.forEach((x) => {
 					periodsPromises.push(
-						PeriodData.resetPeriods(x.id!, signedInUserId, trx)
+						PeriodData.deletePeriods(x.id!, signedInUserId, trx)
 					);
 				});
 
