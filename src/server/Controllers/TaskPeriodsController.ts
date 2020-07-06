@@ -64,7 +64,9 @@ export const generatePeriods: RequestHandler[] = [
 				);
 			}
 
-			res.status(HttpStatus.CREATED).json(taskPeriodsResults.periods);
+			const periods = await PeriodData.getFullModelsByTaskId(taskId);
+
+			res.status(HttpStatus.CREATED).json(periods);
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)

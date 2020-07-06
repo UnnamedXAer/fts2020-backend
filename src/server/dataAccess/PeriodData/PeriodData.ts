@@ -11,9 +11,7 @@ import TaskData from '../Task/TaskData';
 import { updateDates } from '../../utils/TaskTimePeriod';
 import Knex from 'knex';
 
-export type PeriodsResetResults =
-	| { info: 'no-members' }
-	| { info: 'ok'; periods: TaskPeriodFullModel[] };
+export type PeriodsResetResults = { info: 'no-members' | 'ok' };
 
 class PeriodData {
 	private static periodFullModelSQL = `select "tp"."id",
@@ -193,7 +191,7 @@ class PeriodData {
 		taskId: number,
 		signedInUserId: number,
 		trx: Knex.Transaction
-	): Promise<TaskPeriodFullModel[]> {
+	) {
 		const periodsData = taskPeriods.map((x) => {
 			return <TaskPeriodsRow>{
 				taskId: taskId,
@@ -204,21 +202,17 @@ class PeriodData {
 		});
 
 		try {
-			const results = await trx('taskPeriods')
-				.insert(periodsData)
-				.returning('id');
-
-			const currentTaskPeriods = await PeriodData.getFullModelsByTaskId(
-				taskId
-			);
+			const results: { rowCount: number } = await trx(
+				'taskPeriods'
+			).insert(periodsData);
 
 			logger.debug(
 				'[PeriodData].addPeriods task Id: %s, periods created cnt: %s, by %s',
 				taskId,
-				results.length,
+				results.rowCount,
 				signedInUserId
 			);
-			return currentTaskPeriods;
+			return results;
 		} catch (err) {
 			logger.debug('[PeriodData].addPeriods error: %o', err);
 			throw err;
@@ -263,11 +257,7 @@ class PeriodData {
 		const _knex = trx || knex;
 		try {
 			const results = await _knex.transaction(async (trx) => {
-				const delResults = await this.deletePeriods(
-					taskId,
-					signedInUserId,
-					trx
-				);
+				await this.deletePeriods(taskId, signedInUserId, trx);
 
 				const periodsData = await this.generatePeriodsData(taskId, trx);
 
@@ -275,7 +265,7 @@ class PeriodData {
 					return periodsData as PeriodsResetResults;
 				}
 
-				const createdPeriods = await this.addPeriods(
+				await this.addPeriods(
 					periodsData.periods,
 					taskId,
 					signedInUserId,
@@ -283,16 +273,13 @@ class PeriodData {
 				);
 
 				logger.debug(
-					'[PeriodData].resetPeriods taskId %s, deleted periods cnt: %s, added periods cnt: %s, by: %s',
+					'[PeriodData].resetPeriods taskId %s, by: %s',
 					taskId,
-					delResults,
-					createdPeriods.length,
 					signedInUserId
 				);
 
 				return {
 					info: 'ok',
-					periods: createdPeriods,
 				} as PeriodsResetResults;
 			});
 
