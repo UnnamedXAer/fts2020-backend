@@ -4,6 +4,7 @@ export enum FlatInvitationActions {
 	'ACCEPT' = 'ACCEPT',
 	'REJECT' = 'REJECT',
 	'CANCEL' = 'CANCEL',
+	'RESEND' = 'RESEND',
 }
 
 export enum FlatInvitationStatus {

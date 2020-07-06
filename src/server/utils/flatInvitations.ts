@@ -35,65 +35,71 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 	}
 
 	invitations!.forEach(async (inv) => {
-		let sendSuccessfully: boolean = false;
+		await sendFlatInvitation(inv, flat!, owner!);
+	});
+};
 
-		try {
-			const recipient = await UserData.getByEmailAddress(
-				inv.emailAddress
-			);
+export const sendFlatInvitation = async (
+	inv: FlatInvitationModel,
+	flat: FlatModel,
+	owner: UserModel
+) => {
+	let sendSuccessfully: boolean = false;
+	let updatedInvitation: FlatInvitationModel | null = null;
 
-			const { html, plainText } = getEmailInvitationContent(
-				inv.token,
-				inv.emailAddress,
-				flat!,
-				owner!,
-				recipient
+	try {
+		const recipient = await UserData.getByEmailAddress(inv.emailAddress);
+
+		const { html, plainText } = getEmailInvitationContent(
+			inv.token,
+			inv.emailAddress,
+			flat!,
+			owner!,
+			recipient
+		);
+		await sendMail(
+			inv.emailAddress,
+			'FTS2020 Flat Invitation',
+			html,
+			plainText
+		);
+		sendSuccessfully = true;
+		updatedInvitation = await FlatInvitationData.update(
+			inv.id!,
+			FlatInvitationStatus.PENDING,
+			inv.createBy
+		);
+		logger.debug('[sendFlatInvitation] invitations: %s send.', inv.id);
+	} catch (err) {
+		if (!sendSuccessfully) {
+			logger.error(
+				'[sendFlatInvitation] fail to send invitation id: %s, error: %o',
+				inv.id,
+				err
 			);
-			await sendMail(
-				inv.emailAddress,
-				'FTS2020 Flat Invitation',
-				html,
-				plainText
-			);
-			sendSuccessfully = true;
-			await FlatInvitationData.update(
-				inv.id!,
-				FlatInvitationStatus.PENDING,
-				inv.createBy
-			);
-			logger.debug(
-				'[sendInvitationsToFlat] invitations: %s send.',
-				inv.id
-			);
-		} catch (err) {
-			if (!sendSuccessfully) {
-				logger.error(
-					'[sendInvitationsToFlat] fail to send invitation id: %s, error: %o',
-					inv.id,
-					err
+			try {
+				updatedInvitation = await FlatInvitationData.update(
+					inv.id!,
+					FlatInvitationStatus.SEND_ERROR,
+					inv.createBy
 				);
-				try {
-					await FlatInvitationData.update(
-						inv.id!,
-						FlatInvitationStatus.SEND_ERROR,
-						inv.createBy
-					);
-				} catch (err) {
-					logger.error(
-						'[sendInvitationsToFlat] failed to set "SEND_ERROR" status for inv id: %s, error: %o',
-						inv.id,
-						err
-					);
-				}
-			} else {
+			} catch (err) {
 				logger.error(
-					'[sendInvitationsToFlat] failed to set "PENDING" status for inv id: %s, error: %o',
+					'[sendFlatInvitation] failed to set "SEND_ERROR" status for inv id: %s, error: %o',
 					inv.id,
 					err
 				);
 			}
+		} else {
+			logger.error(
+				'[sendFlatInvitation] failed to set "PENDING" status for inv id: %s, error: %o',
+				inv.id,
+				err
+			);
 		}
-	});
+	}
+
+	return updatedInvitation;
 };
 
 const getEmailInvitationContent = (

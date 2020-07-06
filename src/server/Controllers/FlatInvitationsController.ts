@@ -11,11 +11,15 @@ import {
 	FlatInvitationStatus,
 	FlatInvitationActions,
 } from '../customTypes/DbTypes';
-import { sendInvitationsToFlat } from '../utils/flatInvitations';
+import {
+	sendInvitationsToFlat,
+	sendFlatInvitation,
+} from '../utils/flatInvitations';
 import FlatInvitationModel, {
 	FlatInvitationPresentationModel,
 } from '../models/FlatInvitation';
 import UserData from '../dataAccess/User/UserData';
+import { assertUnreachable } from '../utils/assertUnreachable';
 
 export const getFlatInvitations: RequestHandler[] = [
 	param('flatId').isInt().toInt(),
@@ -177,7 +181,8 @@ export const inviteMembers: RequestHandler[] = [
 			}
 			sendInvitationsToFlat(flat.id!);
 
-			res.sendStatus(HttpStatus.CREATED);
+			const invitations = await FlatInvitationData.getByFlat(flatId);
+			res.status(HttpStatus.OK).json(invitations);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
@@ -197,7 +202,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 		logger.http(
 			'[PATCH] /invitations/%s/answer user (%s), action: %s',
 			id,
-			loggedUser,
+			loggedUser.id,
 			id,
 			action
 		);
@@ -223,7 +228,8 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 		if (
 			!(
 				invitation &&
-				((action === FlatInvitationActions.CANCEL &&
+				(((action === FlatInvitationActions.CANCEL ||
+					FlatInvitationActions.RESEND) &&
 					invitation.createBy === loggedUser.id) ||
 					((action === FlatInvitationActions.ACCEPT ||
 						action === FlatInvitationActions.REJECT) &&
@@ -233,39 +239,53 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 			return next(
 				new HttpException(
 					HttpStatus.UNAUTHORIZED,
-					'Unauthorized access - You do not have permissions to perform this invitation action.'
+					`Unauthorized access - You do not have permissions to ${action.toLocaleLowerCase()} this invitation action.`
 				)
 			);
 		}
 
 		try {
 			let status: FlatInvitationStatus | undefined;
-			if (action === FlatInvitationActions.ACCEPT)
-				status = FlatInvitationStatus.ACCEPTED;
-			else if (action === FlatInvitationActions.REJECT)
-				status = FlatInvitationStatus.REJECTED;
-			else if (action === FlatInvitationActions.CANCEL)
-				status = FlatInvitationStatus.CANCELED;
 
-			if (!status) {
-				throw new Error(
-					'Unrecognized "Status" for inv: ' + invitation.id
-				);
+			switch (action) {
+				case FlatInvitationActions.ACCEPT:
+					status = FlatInvitationStatus.ACCEPTED;
+					break;
+				case FlatInvitationActions.REJECT:
+					status = FlatInvitationStatus.REJECTED;
+					break;
+				case FlatInvitationActions.CANCEL:
+					status = FlatInvitationStatus.CANCELED;
+					break;
+				case FlatInvitationActions.RESEND:
+					status = FlatInvitationStatus.PENDING;
+					break;
+				default:
+					assertUnreachable(action);
 			}
 
-			if (status === FlatInvitationStatus.ACCEPTED) {
-				await FlatData.addMember(
-					invitation.flatId,
-					loggedUser.id,
+			let updatedInvitation: FlatInvitationModel | null;
+			if (action === FlatInvitationActions.RESEND) {
+				const flat = await FlatData.getById(invitation.flatId);
+				updatedInvitation = await sendFlatInvitation(
+					invitation,
+					flat!,
+					loggedUser
+				);
+			} else {
+				if (status === FlatInvitationStatus.ACCEPTED) {
+					await FlatData.addMember(
+						invitation.flatId,
+						loggedUser.id,
+						loggedUser.id
+					);
+				}
+				updatedInvitation = await FlatInvitationData.update(
+					invitation.id!,
+					status,
 					loggedUser.id
 				);
 			}
-
-			const updatedInvitation = await FlatInvitationData.update(
-				invitation.id!,
-				status,
-				loggedUser.id
-			);
 
 			res.status(HttpStatus.OK).json(updatedInvitation);
 		} catch (err) {
