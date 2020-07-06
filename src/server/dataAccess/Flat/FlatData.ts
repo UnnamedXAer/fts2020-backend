@@ -5,6 +5,9 @@ import {
 	FlatRow,
 	FlatMembersRow,
 	MembersForFlatRow,
+	FlatInvitationStatus,
+	FlatInvitationRow,
+	TaskRow,
 } from '../../customTypes/DbTypes';
 import UserModel from '../../models/UserModel';
 import TaskData from '../Task/TaskData';
@@ -238,13 +241,27 @@ class FlatData {
 
 		try {
 			let results = await knex.transaction(async (trx) => {
-				await trx('task')
+				await trx<TaskRow>('task')
 					.update({
 						active: false,
 						lastModBy: userId,
 						lastModAt: currentDate,
 					})
 					.where({ flatId: id, active: true });
+
+				await trx<FlatInvitationRow>('flatInvitation')
+					.update({
+						actionDate: currentDate,
+						status: FlatInvitationStatus.EXPIRED,
+					})
+					.whereIn('status', [
+						FlatInvitationStatus.CREATED,
+						FlatInvitationStatus.PENDING,
+						FlatInvitationStatus.SEND_ERROR,
+					])
+					.andWhere({
+						flatId: id,
+					});
 
 				const flatResults = await trx<FlatRow>('flat')
 					.update({
