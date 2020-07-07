@@ -151,3 +151,13 @@ export type TaskPeriodsFullRow = {
 	cbName: string | null;
 	cbId: number | null;
 };
+
+export type MessageRow = {
+	id: number;
+	createBy: number;
+	createAt: Date;
+	recipient: number;
+	subject: string;
+	content: string;
+	sent: boolean;
+};

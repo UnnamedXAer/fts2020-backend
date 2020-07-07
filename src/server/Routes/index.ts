@@ -6,6 +6,7 @@ import flatsRouter from './FlatsRouter';
 import tasksRouter from './TasksRouter';
 import periodsRouter from './PeriodsRouter';
 import invitationsRouter from './InvitationsRouter';
+import messagesRouter from './MessagesRouter';
 import ensureAuthenticated from '../middleware/ensureAuthenticated';
 const router = Router();
 
@@ -16,4 +17,5 @@ router.use('/flats', ensureAuthenticated, flatsRouter);
 router.use('/tasks', ensureAuthenticated, tasksRouter);
 router.use('/periods', ensureAuthenticated, periodsRouter);
 router.use('/invitations', ensureAuthenticated, invitationsRouter);
+router.use('/messages', ensureAuthenticated, messagesRouter);
 export default router;
