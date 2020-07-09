@@ -99,7 +99,7 @@ class FlatInvitationData {
 			const results: FlatInvitationRow[] = await knex
 				.select(db.CommonCols.flatInvitation)
 				.from('flatInvitation')
-				.where({ emailAddress })
+				.where({ emailAddress: emailAddress.toLowerCase() })
 				.orderBy('createAt', 'desc');
 
 			const invitations = results.map(this.mapInvitationsDataToModel);
@@ -153,7 +153,7 @@ class FlatInvitationData {
 	) {
 		const currentDate = new Date();
 		const data: FlatInvitationRow[] = emailAddresses.map((email) => ({
-			emailAddress: email,
+			emailAddress: email.toLowerCase(),
 			flatId: flatId,
 			status: FlatInvitationStatus.CREATED,
 			createBy: loggedUserId,
