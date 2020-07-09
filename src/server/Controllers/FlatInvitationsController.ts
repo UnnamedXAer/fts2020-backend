@@ -233,7 +233,8 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 					invitation.createBy === loggedUser.id) ||
 					((action === FlatInvitationActions.ACCEPT ||
 						action === FlatInvitationActions.REJECT) &&
-						invitation.emailAddress === loggedUser.emailAddress))
+						invitation.emailAddress ===
+							loggedUser.emailAddress.toLowerCase()))
 			)
 		) {
 			return next(
@@ -324,7 +325,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 
 			if (
 				!invitation ||
-				(invitation.emailAddress !== loggedUser.emailAddress &&
+				(invitation.emailAddress !== loggedUser.emailAddress.toLowerCase() &&
 					invitation.createBy !== loggedUser.id)
 			) {
 				return next(
