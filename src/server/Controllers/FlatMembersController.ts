@@ -5,6 +5,7 @@ import logger from '../../logger';
 import { getLoggedUserId } from '../utils/authUser';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
+import FlatModel from '../models/FlatModel';
 
 export const getMembers: RequestHandler[] = [
 	param('flatId').isInt().toInt(),
@@ -49,6 +50,7 @@ export const deleteMember: RequestHandler[] = [
 			flatId: number;
 		};
 		const { userId } = (req.body as unknown) as { userId: number };
+		let flat: FlatModel | null;
 		const signedInUserId = getLoggedUserId(req);
 		logger.debug(
 			'[DELETE] /flats/%s/members/ userId: %s loggedUser: %s',
@@ -70,23 +72,42 @@ export const deleteMember: RequestHandler[] = [
 		}
 
 		try {
-			if (!(await FlatData.isUserFlatOwner(signedInUserId, flatId))) {
-				return next(
-					new HttpException(
-						HttpStatus.UNAUTHORIZED,
-						'Unauthorized access - You do not have permissions to maintain this flat.'
-					)
-				);
-			}
+			flat = await FlatData.getById(flatId);
 		} catch (err) {
 			return next(
 				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
 			);
 		}
 
+		if (!flat?.members?.includes(signedInUserId)) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to maintain this flat.'
+				)
+			);
+		}
+
+		if (userId !== signedInUserId && signedInUserId !== flat.createBy) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - You do not have permissions to remove other members.'
+				)
+			);
+		}
+
+		if (flat.createBy === userId) {
+			return next(
+				new HttpException(
+					HttpStatus.UNAUTHORIZED,
+					'Unauthorized access - Flat owner cannot be removed from flat members.'
+				)
+			);
+		}
+
 		try {
-			const results  = await FlatData.deleteMember(flatId, userId, signedInUserId);
-			console.log(results);
+			await FlatData.deleteMember(flatId, userId, signedInUserId);
 			res.sendStatus(HttpStatus.OK);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
