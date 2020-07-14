@@ -127,7 +127,7 @@ export const inviteMembers: RequestHandler[] = [
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
-						'Unauthorized access - You do not have permissions to maintain this flat.'
+						'Unauthorized access - You do not have permissions to invite people to this flat.'
 					)
 				);
 			}
