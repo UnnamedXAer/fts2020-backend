@@ -37,11 +37,7 @@ export const generatePeriods: RequestHandler[] = [
 			);
 		}
 
-		if (
-			!task ||
-			(task.createBy !== signedInUserId &&
-				!(await FlatData.isUserFlatOwner(signedInUserId, task.flatId!)))
-		) {
+		if (!task || !task.members!.includes(signedInUserId)) {
 			return next(
 				new HttpException(
 					HttpStatus.UNAUTHORIZED,
