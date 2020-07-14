@@ -222,25 +222,37 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 		try {
 			invitation = await FlatInvitationData.getById(id);
 		} catch (err) {
-			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
+			return next(
+				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
+			);
 		}
 
-		if (
-			!(
-				invitation &&
-				(((action === FlatInvitationActions.CANCEL ||
-					FlatInvitationActions.RESEND) &&
-					invitation.createBy === loggedUser.id) ||
-					((action === FlatInvitationActions.ACCEPT ||
-						action === FlatInvitationActions.REJECT) &&
-						invitation.emailAddress ===
-							loggedUser.emailAddress.toLowerCase()))
-			)
-		) {
+		let hasAccess = false;
+		if (invitation) {
+			if (
+				(action === FlatInvitationActions.CANCEL ||
+					action === FlatInvitationActions.RESEND) &&
+				invitation.createBy === loggedUser.id
+			) {
+				hasAccess = true;
+			}
+
+			if (
+				!hasAccess &&
+				(action === FlatInvitationActions.ACCEPT ||
+					action === FlatInvitationActions.REJECT) &&
+				invitation.emailAddress ===
+					loggedUser.emailAddress.toLowerCase()
+			) {
+				hasAccess = true;
+			}
+		}
+
+		if (!hasAccess) {
 			return next(
 				new HttpException(
 					HttpStatus.UNAUTHORIZED,
-					`Unauthorized access - You do not have permissions to ${action.toLocaleLowerCase()} this invitation action.`
+					`Unauthorized access - You do not have permissions to ${action.toLocaleLowerCase()} this invitation.`
 				)
 			);
 		}
@@ -267,22 +279,22 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 
 			let updatedInvitation: FlatInvitationModel | null;
 			if (action === FlatInvitationActions.RESEND) {
-				const flat = await FlatData.getById(invitation.flatId);
+				const flat = await FlatData.getById(invitation!.flatId);
 				updatedInvitation = await sendFlatInvitation(
-					invitation,
+					invitation!,
 					flat!,
 					loggedUser
 				);
 			} else {
 				if (status === FlatInvitationStatus.ACCEPTED) {
 					await FlatData.addMember(
-						invitation.flatId,
+						invitation!.flatId,
 						loggedUser.id,
 						loggedUser.id
 					);
 				}
 				updatedInvitation = await FlatInvitationData.update(
-					invitation.id!,
+					invitation!.id!,
 					status,
 					loggedUser.id
 				);
@@ -323,40 +335,55 @@ export const getInvitationsPresentation: RequestHandler[] = [
 		try {
 			const invitation = await FlatInvitationData.getByToken(token);
 
-			if (
-				!invitation ||
-				(invitation.emailAddress !== loggedUser.emailAddress.toLowerCase() &&
-					invitation.createBy !== loggedUser.id)
-			) {
+			let hasAccess = false;
+			let isOwner = false;
+
+			if (invitation) {
+				if (invitation.createBy === loggedUser.id) {
+					isOwner = true;
+				}
+
+				if (
+					!isOwner &&
+					invitation.emailAddress ===
+						loggedUser.emailAddress.toLowerCase()
+				) {
+					hasAccess = true;
+				}
+			}
+
+			if (!hasAccess) {
 				return next(
 					new HttpException(
 						HttpStatus.UNAUTHORIZED,
-						'Unauthorized access. You do not have permissions to maintain this invitation.'
+						`Unauthorized access. You do not have permissions to ${
+							isOwner ? 'accept or reject ' : 'maintain'
+						} this invitation.`
 					)
 				);
 			}
 
-			const sender = await UserData.getById(invitation.createBy);
+			const sender = await UserData.getById(invitation!.createBy);
 			const invitedPerson = await UserData.getByEmailAddress(
-				invitation.emailAddress
+				invitation!.emailAddress
 			);
-			const flat = await FlatData.getById(invitation.flatId);
+			const flat = await FlatData.getById(invitation!.flatId);
 			const flatOwner = await UserData.getById(flat!.createBy!);
-			const actionPerson = invitation.actionBy
-				? await UserData.getById(invitation.actionBy)
+			const actionPerson = invitation!.actionBy
+				? await UserData.getById(invitation!.actionBy)
 				: null;
 
 			const payload = new FlatInvitationPresentationModel({
-				id: invitation.id!,
-				token: invitation.token,
-				status: invitation.status,
-				sendDate: invitation.sendDate,
-				actionDate: invitation.actionDate!,
-				createAt: invitation.createAt,
+				id: invitation!.id!,
+				token: invitation!.token,
+				status: invitation!.status,
+				sendDate: invitation!.sendDate,
+				actionDate: invitation!.actionDate!,
+				createAt: invitation!.createAt,
 				sender: sender!,
 				invitedPerson: invitedPerson
 					? invitedPerson
-					: invitation.emailAddress,
+					: invitation!.emailAddress,
 				flat: flat!,
 				flatOwner: flatOwner!,
 				actionBy: actionPerson,
