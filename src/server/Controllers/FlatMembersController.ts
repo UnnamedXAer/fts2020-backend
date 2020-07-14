@@ -79,7 +79,7 @@ export const deleteMember: RequestHandler[] = [
 			);
 		}
 
-		if (!flat?.members?.includes(signedInUserId)) {
+		if (!flat || !flat.members!.includes(signedInUserId)) {
 			return next(
 				new HttpException(
 					HttpStatus.UNAUTHORIZED,
