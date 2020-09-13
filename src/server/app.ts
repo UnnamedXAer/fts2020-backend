@@ -59,6 +59,17 @@ app.get('/', (_req: Request, res: Response) => {
 	res.send({ response: 'FTS 2020' }).status(200);
 });
 
+app.get('/mobile/invitation', (_req: Request, res: Response) => {
+	const href = `exp://192.168.1.9:19000/--/invitations/${'ecd736ac-9077-486f-acb0-82246a32c535'}`;
+	res.send(
+		`<h1 color="teal">FTS 2020</h2>
+		<p>${new Date().toLocaleString()}</p>
+		<hr />
+	<a style="font-size:40px" href="${href}" title="Open FTS2020 web page.">HERE: ${href}</a>
+	`
+	);
+});
+
 // catch 404 and forward to error handler
 app.use(function (_req: Request, _res: Response, next: NextFunction) {
 	next(createError(404));
