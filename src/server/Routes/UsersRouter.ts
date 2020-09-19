@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { getById, getByEmailAddress, update } from '../controllers/UsersController';
+import ensureAuthenticated from '../middleware/ensureAuthenticated';
 const router = Router();
 
-router.get('/:id', getById);
-router.patch('/:id', update);
-router.get('/', getByEmailAddress);
+router.get('/:id', ensureAuthenticated, getById);
+router.patch('/:id', ensureAuthenticated, update);
+router.get('/', ensureAuthenticated, getByEmailAddress);
 
 export default router;
