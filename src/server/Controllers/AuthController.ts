@@ -20,10 +20,7 @@ export const logIn: RequestHandler[] = [
 	body('password').exists().withMessage('Password is required.'),
 	(req, res, next) => {
 		const { emailAddress } = req.body;
-		logger.info(
-			'/auth/login: Someone trying to logIn as: %s',
-			emailAddress
-		);
+		logger.info('/auth/login: Someone trying to logIn as: %s', emailAddress);
 		passport.authenticate('local', {}, (err, user, info) => {
 			if (err) {
 				return next(new HttpException(500, err));
@@ -31,10 +28,7 @@ export const logIn: RequestHandler[] = [
 
 			if (info || !user) {
 				return next(
-					new HttpException(
-						422,
-						info ? info.message : 'Invalid credentials.'
-					)
+					new HttpException(422, info ? info.message : 'Invalid credentials.')
 				);
 			}
 
@@ -60,10 +54,9 @@ export const register: RequestHandler[] = [
 				throw new Error('Email Address already in use.');
 			}
 		}),
-	body(
-		'password',
-		'Minimum 6 characters, at least one letter and one number'
-	).matches(new RegExp(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)),
+	body('password', 'Minimum 6 characters, at least one letter and one number').matches(
+		new RegExp(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)
+	),
 	body('confirmPassword').custom(async (value, { req }) => {
 		if (value !== req.body.password) {
 			throw new Error('Password confirmation does not match password.');
@@ -90,9 +83,7 @@ export const register: RequestHandler[] = [
 		});
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
 					errorsArray,
@@ -109,10 +100,7 @@ export const register: RequestHandler[] = [
 			provider = 'local',
 		} = <UserRegisterModel>req.body;
 
-		const hashedPassword = await bcrypt.hash(
-			password,
-			bcrypt.genSaltSync(10)
-		);
+		const hashedPassword = await bcrypt.hash(password, bcrypt.genSaltSync(10));
 
 		const userRegister = new UserRegisterModel(
 			emailAddress,
@@ -156,10 +144,7 @@ export const register: RequestHandler[] = [
 
 export const logOut: RequestHandler = (req, res, _) => {
 	const user = req.user as UserModel | undefined;
-	logger.debug(
-		'/auth/logout : User %s is about to logOut',
-		user?.emailAddress
-	);
+	logger.debug('/auth/logout : User %s is about to logOut', user?.emailAddress);
 	req.logout();
 	res.sendStatus(200);
 };
@@ -182,9 +167,7 @@ export const changePassword: RequestHandler[] = [
 		);
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
 					errorsArray,
@@ -200,23 +183,16 @@ export const changePassword: RequestHandler[] = [
 				signedUser.emailAddress
 			)) as UserModel;
 		} catch (err) {
-			return next(
-				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
-			);
+			return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
 
 		const passwordMatch = await bcrypt.compare(oldPassword, user.password!);
 
 		if (!passwordMatch) {
-			return next(
-				new HttpException(HttpStatus.UNAUTHORIZED, 'Wrong password.')
-			);
+			return next(new HttpException(HttpStatus.UNAUTHORIZED, 'Wrong password.'));
 		}
 
-		const hashedPassword = await bcrypt.hash(
-			newPassword,
-			bcrypt.genSaltSync(10)
-		);
+		const hashedPassword = await bcrypt.hash(newPassword, bcrypt.genSaltSync(10));
 
 		try {
 			const partialUser: Partial<UserModel> = {
@@ -232,3 +208,69 @@ export const changePassword: RequestHandler[] = [
 		}
 	},
 ];
+
+export const githubAuthenticate = passport.authenticate('github', {
+	scope: ['read:user'],
+});
+
+export const githubAuthenticateCallback: RequestHandler[] = [
+	passport.authenticate('github', {
+		scope: ['read:user'],
+	}),
+	async (req, res) => {
+		const signedUser = getLoggedUser(req);
+		logger.debug('[ githubAuthenticateCallback ]: user %o', signedUser);
+		// return res.redirect('http://192.168.1.9:3021/auth#success');
+		const txt = [
+			'<!DOCTYPE html>',
+			'<html lang="pl">',
+			'<head>',
+			'	<meta charset="UTF-8">',
+			'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+			'	<title>Document</title>',
+			'</head>',
+			'<body>',
+			'<script>',
+			'window.document.body.innerHTML = `\n',
+			'<h1 color="teal">FTS 2020</h1>\n',
+			'<ul>\n',
+			'<li>userAgent: ${navigator.userAgent}</li>\n',
+			'<li>platform: ${navigator.platform}</li>\n',
+			'<li>vendor: ${navigator.vendor}</li>\n',
+			'</ul>\n',
+			'<hr />`',
+			'</script>',
+			'<p>Successfully authorized by GitHub :), now click the button to go to the app</p>',
+			'<script>\n',
+			'	const backToAppBtnClickHandler = () => {\n',
+			'		console.log(navigator.userAgent.indexOf("Android"))\n',
+			'		if (navigator.userAgent.indexOf("Android") === -1) {\n',
+			'			window.location.href = "http://localhost:3021/auth#success";\n',
+			'		} else {\n',
+			'			window.open("exp://192.168.1.9:19000/--/auth/github");\n',
+			'		}\n',
+			'	}\n',
+			'</script>\n',
+			'<button onclick="backToAppBtnClickHandler()">Go to app</button>\n',
+			'<hr />',
+			'</body>',
+			'</html>',
+		].join(' ');
+		res.send(txt);
+	},
+];
+
+export const googleAuthenticate = passport.authenticate('google', {
+	scope: ['read:user'],
+});
+
+export const getCurrentUser: RequestHandler = (req, res, next) => {
+	const signedUser = getLoggedUser(req);
+	logger.debug('[ getCurrentUser ]: user %s', signedUser?.emailAddress);
+
+	if (signedUser) {
+		res.status(200).json({ user: signedUser, expiresIn: SESSION_DURATION });
+	} else {
+		next(new HttpException(HttpStatus.UNAUTHORIZED, 'Un-authorized access.'));
+	}
+};

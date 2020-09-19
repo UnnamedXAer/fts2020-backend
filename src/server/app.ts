@@ -17,7 +17,8 @@ passportConfig(passport);
 export const app = express();
 app.use(
 	cors({
-		origin: `http://localhost:${process.env.CLIENT_PORT}`,
+		// origin: `http://localhost:${process.env.CLIENT_PORT}`,
+		origin: true,
 		credentials: true,
 	})
 );
@@ -68,6 +69,33 @@ app.get('/mobile/invitation', (_req: Request, res: Response) => {
 	<a style="font-size:40px" href="${href}" title="Open FTS2020 web page.">HERE: ${href}</a>
 	`
 	);
+});
+
+app.get('/debug', (_req, res) => {
+	const txt = [
+		'<!DOCTYPE html>',
+		'<html lang="pl">',
+		'<head>',
+		'	<meta charset="UTF-8">',
+		'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+		'	<title>Document</title>',
+		'</head>',
+		'<body>',
+		'<script>',
+		'window.document.body.innerHTML = `\n',
+		'<h1 color="teal">FTS 2020</h1>\n',
+		'<ul>\n',
+		'<li>userAgent: ${navigator.userAgent}</li>\n',
+		'<li>platform: ${navigator.platform}</li>\n',
+		'<li>vendor: ${navigator.vendor}</li>\n',
+		'</ul>\n',
+		'<p>WORK!!!!!!!!</p>`',
+		'</script>',
+		'<hr />',
+		'</body>',
+		'</html>',
+	].join(' ');
+	res.send(txt);
 });
 
 // catch 404 and forward to error handler

@@ -17,7 +17,7 @@ export enum FlatInvitationStatus {
 	'CANCELED' = 'CANCELED',
 }
 
-export type Provider = 'local' | 'google';
+export type Provider = 'local' | 'google' | 'github';
 
 export const db = {
 	CommonCols: {
@@ -151,4 +151,3 @@ export type TaskPeriodsFullRow = {
 	cbName: string | null;
 	cbId: number | null;
 };
-
