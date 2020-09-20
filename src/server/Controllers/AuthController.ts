@@ -220,42 +220,23 @@ export const githubAuthenticateCallback: RequestHandler[] = [
 	async (req, res) => {
 		const signedUser = getLoggedUser(req);
 		logger.debug('[ githubAuthenticateCallback ]: user %o', signedUser);
-		// return res.redirect('http://192.168.1.9:3021/auth#success');
-		const txt = [
-			'<!DOCTYPE html>',
-			'<html lang="pl">',
-			'<head>',
-			'	<meta charset="UTF-8">',
-			'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-			'	<title>Document</title>',
-			'</head>',
-			'<body>',
-			'<script>',
-			'window.document.body.innerHTML = `\n',
-			'<h1 color="teal">FTS 2020</h1>\n',
-			'<ul>\n',
-			'<li>userAgent: ${navigator.userAgent}</li>\n',
-			'<li>platform: ${navigator.platform}</li>\n',
-			'<li>vendor: ${navigator.vendor}</li>\n',
-			'</ul>\n',
-			'<hr />`',
-			'</script>',
-			'<p>Successfully authorized by GitHub :), now click the button to go to the app</p>',
-			'<script>\n',
-			'	const backToAppBtnClickHandler = () => {\n',
-			'		console.log(navigator.userAgent.indexOf("Android"))\n',
-			'		if (navigator.userAgent.indexOf("Android") === -1) {\n',
-			'			window.location.href = "http://localhost:3021/auth#success";\n',
-			'		} else {\n',
-			'			window.open("exp://192.168.1.9:19000/--/auth/github");\n',
-			'		}\n',
-			'	}\n',
-			'</script>\n',
-			'<button onclick="backToAppBtnClickHandler()">Go to app</button>\n',
-			'<hr />',
-			'</body>',
-			'</html>',
-		].join(' ');
+		const txt = `
+		<div style="font-size: 2.5em;">\n
+			<p>${JSON.stringify(req.query, null, '\t')}</p>\n
+			<hr/>\n
+			<p>WEB_APP_URL: ${process.env.WEB_APP_URL}</p>
+			<p>MOBILE_APP_URL: ${process.env.MOBILE_APP_URL}</p>
+			<script>\n
+				function go() {\n
+					if (navigator.userAgent.indexOf("Android") === -1) {\n
+						window.open("${process.env.WEB_APP_URL}/auth#success", "_self");\n
+					} else {\n
+						window.open("${process.env.MOBILE_APP_URL}/auth/success/github", "_self");\n
+					}\n
+				}\n
+			</script>\n
+			<button style="font-size: 2.5em; color:green;" onclick="go()">Go</button>\n
+		</div>`;
 		res.send(txt);
 	},
 ];

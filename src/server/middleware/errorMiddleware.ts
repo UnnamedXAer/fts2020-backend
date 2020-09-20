@@ -15,9 +15,7 @@ export default function errorMiddleware(
 		(res.statusCode && res.statusCode >= 400 ? res.statusCode : void 0) ||
 		500;
 	const message =
-		env === 'production' && status === 500
-			? 'Something went wrong'
-			: err.message;
+		env === 'production' && status === 500 ? 'Something went wrong' : err.message;
 	const data = err.data || {};
 
 	if (!err.logsHandled) {
@@ -28,32 +26,22 @@ export default function errorMiddleware(
 			additionalData: err.data,
 			status: {
 				errStatusCode: err.statusCode,
-				resStatusCode: res.statusCode
+				resStatusCode: res.statusCode,
 			},
 			env: env,
-			user: getLoggedUserId(req)
+			user: getLoggedUserId(req),
 		};
 		if (status >= 500) {
 			Object.assign(logData, { stack: err.stack });
-			logger.error(
-				'[%s] %s %o',
-				req.method,
-				req.url,
-				JSON.stringify(logData)
-			);
+			logger.error('[%s] %s %o', req.method, req.url, JSON.stringify(logData));
 		} else {
-			logger.warn(
-				'[%s] %s %O',
-				req.method,
-				req.url,
-				JSON.stringify(logData)
-			);
+			logger.warn('[%s] %s %O', req.method, req.url, JSON.stringify(logData));
 		}
 	}
 	const resObj = {
 		message,
 		status,
-		...data
+		...data,
 	};
 	res.status(status).send(resObj);
 }
