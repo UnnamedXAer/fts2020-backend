@@ -1,4 +1,6 @@
 import moment from 'moment';
+import Mail from 'nodemailer/lib/mailer';
+import path from 'path';
 import FlatModel from '../models/FlatModel';
 import UserModel from '../models/UserModel';
 import FlatInvitationModel from '../models/FlatInvitation';
@@ -26,11 +28,7 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 				x.status === FlatInvitationStatus.SEND_ERROR
 		);
 	} catch (err) {
-		logger.error(
-			'[sendInvitationsToFlat] flatId %s, error: %o',
-			flatId,
-			err
-		);
+		logger.error('[sendInvitationsToFlat] flatId %s, error: %o', flatId, err);
 		return;
 	}
 
@@ -50,26 +48,28 @@ export const sendFlatInvitation = async (
 	try {
 		const recipient = await UserData.getByEmailAddress(inv.emailAddress);
 
-		const { html, plainText } = getEmailInvitationContent(
+		const { html, plainText, attachments } = getEmailInvitationContent(
 			inv.token,
 			inv.emailAddress,
 			flat!,
 			owner!,
 			recipient
 		);
-		await sendMail(
-			inv.emailAddress,
-			'FTS2020 Flat Invitation',
+
+		await sendMail({
+			to: inv.emailAddress,
+			subject: 'FTS2020 Flat Invitation',
 			html,
-			plainText
-		);
+			text: plainText,
+			attachments: attachments,
+		});
 		sendSuccessfully = true;
 		updatedInvitation = await FlatInvitationData.update(
 			inv.id!,
 			FlatInvitationStatus.PENDING,
 			inv.createBy
 		);
-		logger.debug('[sendFlatInvitation] invitations: %s send.', inv.id);
+		logger.debug('[sendFlatInvitation] invitations: %s sent.', inv.id);
 	} catch (err) {
 		if (!sendSuccessfully) {
 			logger.error(
@@ -109,57 +109,70 @@ const getEmailInvitationContent = (
 	owner: UserModel,
 	recipient: UserModel | null
 ) => {
-	const DOMAIN = `http://localhost:3021`;
-	const SERVER_DOMAIN = 'http://localhost:3020';
+	const WEB_URL = process.env.WEB_APP_URL;
+
+	const attachments: Mail.Attachment[] = [
+		{
+			// content: logo,
+			cid: 'logo',
+			filename: 'logo_64.png',
+			path: path.resolve(__dirname + '../../../assets/logo_64.png'),
+			contentDisposition: 'inline',
+			contentTransferEncoding: 'base64',
+		},
+	];
+
+	const replyInfo =
+		'<p style="margin-top:1.5em; font-size: 0.8em; color: #888;">This message was sent from email address intended only to automatic messages. Please do not reply.</p>';
 
 	const html = `<div style="
 		font-size: 1.1em;
 		width: 90%; 
-		max-width: 768px;
+		max-width: 600px;
 		min-width: 300px; 
 		margin: auto; 
-		font-family: sans-serif
+		font-family: sans-serif;
+		text-align: center;
+		z-index: 100;
 	">
-		<a href="${DOMAIN}/" target="blank">
+	<a href="${WEB_URL}/" target="blank" style="text-decoration: none;">
+			<div style="width: 70px; height: 70px; position: absolute; left: 5px; z-index: 0;"><img src="cid:logo" style="width: 70px; height: 70px;" ></div>
 			<h1 style="text-align: center; width: 100%; color: #009688;">FTS2020</h1>
 		</a>
 		<h2>Hello ${recipient && recipient.userName ? recipient.userName : email}</h2>
 
-		<p>You have been invited by <strong>${
+		<p style="font-size: 1.2em;">You have been invited by <strong>${
 			owner.emailAddress
 		} <span style="color: #888;"></span>(${
 		owner.userName
-	})</strong> to join a flat in <strong>FTS2020</strong> application.</p>
-		<p>Click <a href="${DOMAIN}/invitation/${token}" target="blank" title="Open FTS2020 web page.">here</a>
-			to
-			view invitation and decide if <a href="${SERVER_DOMAIN}/invitation/${token}?email=${email}&action=accept" target="blank"
-				title="Accept and join to flat.">accept</a> or <a href="${SERVER_DOMAIN}/invitation/${token}?email=${email}&action=reject"
-				target="blank" title="Reject.">decline</a> it.</p>
-		<p>If you are not yet member of <strong>FTS2020</strong> <a href="${DOMAIN}/invitation/${token}?email=${email}" target="blank"
-				title="Open FTS2020 web page.">here</a> you can sign up.</p>
+	})</strong> to join a flat in <strong style="font-style: italic;">FTS2020</strong> application.</p>
+		<p style="font-size: 1.2em;"><a href="${WEB_URL}/invitation/${token}" target="blank" title="Open FTS2020 web page.">Click this link
+			to view invitation and decide if accept or decline it.</a></p>
+		<p>If you are not yet member of <strong style="font-style: italic;">FTS2020</strong> you can also sign up.</p>
 		<div style="
 				margin: 34px 16px 24px 16px; 
-				/* position: relative; */
-				/* border: 1px solid #ccc;  */
-				/* box-shadow: 0 2px 3px #eee;  */
-				padding: 16px;
 				padding: 4px 16px;
-				border: 2px solid teal;
-				box-shadow: 0 2px 3px teal;
+				border: 2px solid #009688;
+				box-shadow: 0 2px 3px #009688;
 				background-color: white;
+				style="text-align: initial;"
 			">
-			<h2>${flat.name}</h2>
+			<h2 style="text-align: center;">${flat.name}</h2>
 			<hr />
-			<p style="color: #888;">Created by: ${owner.emailAddress} ${owner.userName}</p>
-			<p style="color: #888;">Created at: ${moment(flat.createAt).format('LL')}</p>
+			<p><span style="color: #888;">Created by:</span> ${owner.emailAddress} ${
+		owner.userName
+	}</p>
+			<p><span style="color: #888;">Created at:</span> ${moment(flat.createAt).format('LL')}</p>
 			<hr />
-			<p>${flat.description}</p>
+			<p style="color: #888;">Description:</p>
+			<p>${flat.description ? flat.description : '-'}</p>
 		</div>
+		${replyInfo}
 	</div>`;
 
 	const plainText = `You have been invited by ${owner.emailAddress} (${owner.userName}) to join a flat in FTS2020 application.\
 	Click link below to open FTS2020 webpage and decide if you want to accept or reject invitation.\
-	${DOMAIN}/invitation/${token}?email=${email}`;
+	${WEB_URL}/invitation/${token}?email=${email}`;
 
-	return { html, plainText };
+	return { html, plainText, attachments };
 };
