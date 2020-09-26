@@ -22,7 +22,8 @@ export const sendInvitationsToFlat = async (flatId: number) => {
 			throw new Error(`Flat with id: ${flatId} do not exists.`);
 		}
 		owner = await UserData.getById(flat.createBy!)!;
-		invitations = (await FlatInvitationData.getByFlat(flat.id!)).filter(
+		const allInvitations = await FlatInvitationData.getByFlat(flat.id!);
+		invitations = allInvitations.filter(
 			(x) =>
 				x.status === FlatInvitationStatus.CREATED ||
 				x.status === FlatInvitationStatus.SEND_ERROR

@@ -7,14 +7,8 @@ import logger from '../../logger';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
 import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
-import {
-	FlatInvitationStatus,
-	FlatInvitationActions,
-} from '../customTypes/DbTypes';
-import {
-	sendInvitationsToFlat,
-	sendFlatInvitation,
-} from '../utils/flatInvitations';
+import { FlatInvitationStatus, FlatInvitationActions } from '../customTypes/DbTypes';
+import { sendInvitationsToFlat, sendFlatInvitation } from '../utils/flatInvitations';
 import FlatInvitationModel, {
 	FlatInvitationPresentationModel,
 } from '../models/FlatInvitation';
@@ -34,24 +28,16 @@ export const getFlatInvitations: RequestHandler[] = [
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
-				new HttpException(
-					HttpStatus.BAD_REQUEST,
-					'Invalid parameter.',
-					{
-						errorsArray,
-					}
-				)
+				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid parameter.', {
+					errorsArray,
+				})
 			);
 		}
 
 		try {
-			const membersIds = (await FlatData.getMembers(flatId)).map(
-				(x) => x.id
-			);
+			const membersIds = (await FlatData.getMembers(flatId)).map((x) => x.id);
 			if (!membersIds.includes(loggedUser.id)) {
 				return next(
 					new HttpException(
@@ -73,9 +59,7 @@ export const inviteMembers: RequestHandler[] = [
 	param('flatId').isInt({ allow_leading_zeroes: false, gt: -1 }).toInt(),
 	body('members')
 		.isArray({ min: 1 })
-		.withMessage(
-			'Property "members" must be not empty array of email addresses.'
-		)
+		.withMessage('Property "members" must be not empty array of email addresses.')
 		.custom((value: any[]) => value.length <= 20)
 		.withMessage(
 			`It's rather not true that You live with more than 20 people in a flat or house.
@@ -85,9 +69,7 @@ export const inviteMembers: RequestHandler[] = [
 			const everyOutput = value.every((x) => validator.isEmail(x));
 			return everyOutput;
 		})
-		.withMessage(
-			'Property "members" must be not empty array of email addresses.'
-		),
+		.withMessage('Property "members" must be not empty array of email addresses.'),
 	async (req, res, next) => {
 		const flatId = (req.params.flatId as unknown) as number;
 		const { members: emails } = req.body as { members: string[] };
@@ -101,9 +83,7 @@ export const inviteMembers: RequestHandler[] = [
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 
 			const paramIdx = errorsArray.findIndex((x) => x.param === 'flatId');
 			return next(
@@ -135,24 +115,23 @@ export const inviteMembers: RequestHandler[] = [
 			const flatMembers = (await FlatData.getMembers(flatId)).map(
 				(x) => x.emailAddress
 			);
-			const flatInvitations = (
-				await FlatInvitationData.getByFlat(flatId)
-			).filter((x) => {
+			const allFlatInvitations = await FlatInvitationData.getByFlat(flatId);
+			const notAcceptedFlatInvitations = allFlatInvitations.filter((x) => {
 				return (
 					x.status === FlatInvitationStatus.CANCELED ||
 					x.status === FlatInvitationStatus.EXPIRED ||
 					x.status === FlatInvitationStatus.REJECTED ||
 					x.status === FlatInvitationStatus.CREATED ||
-					x.status === FlatInvitationStatus.SEND_ERROR
+					x.status === FlatInvitationStatus.SEND_ERROR ||
+					x.status === FlatInvitationStatus.PENDING
 				);
 			});
 
 			let emailsToCreateInvs: string[] = [];
 			let invIdsToUpdate: number[] = [];
 			emails.forEach((email) => {
-				const invitationId = flatInvitations.find(
-					(x) => x.emailAddress === email
-				)?.id;
+				const invitationId = notAcceptedFlatInvitations.find((x) => x.emailAddress === email)
+					?.id;
 
 				if (invitationId !== void 0) {
 					invIdsToUpdate.push(invitationId);
@@ -173,11 +152,7 @@ export const inviteMembers: RequestHandler[] = [
 			}
 
 			if (emailsToCreateInvs.length > 0) {
-				await FlatInvitationData.create(
-					flatId,
-					emailsToCreateInvs,
-					loggedUserId
-				);
+				await FlatInvitationData.create(flatId, emailsToCreateInvs, loggedUserId);
 			}
 			sendInvitationsToFlat(flat.id!);
 
@@ -209,9 +184,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid property.', {
 					errorsArray,
@@ -222,9 +195,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 		try {
 			invitation = await FlatInvitationData.getById(id);
 		} catch (err) {
-			return next(
-				new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err)
-			);
+			return next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
 
 		let hasAccess = false;
@@ -241,8 +212,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 				!hasAccess &&
 				(action === FlatInvitationActions.ACCEPT ||
 					action === FlatInvitationActions.REJECT) &&
-				invitation.emailAddress ===
-					loggedUser.emailAddress.toLowerCase()
+				invitation.emailAddress === loggedUser.emailAddress.toLowerCase()
 			) {
 				hasAccess = true;
 			}
@@ -318,17 +288,11 @@ export const getInvitationsPresentation: RequestHandler[] = [
 
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			let errorsArray = errors
-				.array()
-				.map((x) => ({ msg: x.msg, param: x.param }));
+			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
-				new HttpException(
-					HttpStatus.BAD_REQUEST,
-					'Invalid parameter.',
-					{
-						errorsArray,
-					}
-				)
+				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid parameter.', {
+					errorsArray,
+				})
 			);
 		}
 
@@ -345,8 +309,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 
 				if (
 					!isOwner &&
-					invitation.emailAddress ===
-						loggedUser.emailAddress.toLowerCase()
+					invitation.emailAddress === loggedUser.emailAddress.toLowerCase()
 				) {
 					hasAccess = true;
 				}
@@ -381,9 +344,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 				actionDate: invitation!.actionDate!,
 				createAt: invitation!.createAt,
 				sender: sender!,
-				invitedPerson: invitedPerson
-					? invitedPerson
-					: invitation!.emailAddress,
+				invitedPerson: invitedPerson ? invitedPerson : invitation!.emailAddress,
 				flat: flat!,
 				flatOwner: flatOwner!,
 				actionBy: actionPerson,
