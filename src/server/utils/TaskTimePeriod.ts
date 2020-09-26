@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { TaskPeriodUnit } from '../customTypes/TaskTypes';
 
 export function updateDates(
@@ -6,36 +7,30 @@ export function updateDates(
 	startDate: Date,
 	index: number
 ) {
-	// let offset = 0;
-
 	switch (unit) {
-		// case TaskPeriodUnit.HOUR:
-		// 	offset = 1000 * 60 * 60 * value;
-		// 	// endDate = new Date(startDate.getTime() + offset);
-		// 	break;
 		case TaskPeriodUnit.DAY:
 			return calculateNextDatesForDay(startDate, value, index);
 		case TaskPeriodUnit.WEEK:
 			return calculateNextDatesForWeek(startDate, value, index);
-		// case TaskPeriodUnit.MONTH:
-		// 	// endDate = new Date(
-		// 	// 	new Date(startDate).setMonth(startDate.getMonth() + value)
-		// 	// );
-		// 	break;
-		// case TaskPeriodUnit.YEAR:
-		// 	// const year = startDate.getFullYear();
-		// 	// endDate = new Date(startDate);
-		// 	// endDate.setFullYear(year + value);
-		// 	break;
+		case TaskPeriodUnit.MONTH:
+			return calculateNextDatesForMonth(startDate, value, index);
+		default:
+			throw new Error(`Unsupported task period unit "${unit}".`);
 	}
-	throw new Error('something is not setup correctly');
 }
 
-function calculateNextDatesForWeek(
-	startDate: Date,
-	value: number,
-	index: number
-) {
+function calculateNextDatesForMonth(startDate: Date, value: number, index: number) {
+	const currentStartDate = moment(startDate)
+		.add(index > 0 ? 1 : 0, 'day')
+		.toDate();
+	const currentEndDate = moment(currentStartDate).add(value, 'month').toDate();
+	return {
+		currentStartDate,
+		currentEndDate,
+	};
+}
+
+function calculateNextDatesForWeek(startDate: Date, value: number, index: number) {
 	const dayInMs = 1000 * 60 * 60 * 24;
 	const startDateOffset = dayInMs * (index > 0 ? 1 : 0);
 	let endDateOffset: number;
@@ -54,11 +49,7 @@ function calculateNextDatesForWeek(
 	};
 }
 
-function calculateNextDatesForDay(
-	startDate: Date,
-	value: number,
-	index: number
-) {
+function calculateNextDatesForDay(startDate: Date, value: number, index: number) {
 	const dayInMs = 1000 * 60 * 60 * 24;
 
 	const startDateOffset = dayInMs * (index > 0 ? 1 : 0);
