@@ -1,7 +1,7 @@
 import Knex from 'knex';
 import logger from '../logger';
 const NODE_ENV = process.env.NODE_ENV;
-if (NODE_ENV != 'development' && NODE_ENV != 'development') {
+if (NODE_ENV != 'development' && NODE_ENV != 'production') {
     throw new Error(
         'Invalid Environment Setup: "NODE_ENV" is not set correctly.'
     );
@@ -24,7 +24,7 @@ database('logs')
     })
     .catch(err => {
 		logger.error(err);
-		logger.warn('Application will be shut down.');
+		logger.warn('[db-error]: Application will be shut down.');
         process.exit(1);
     });
 

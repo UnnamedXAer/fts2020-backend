@@ -7,5 +7,6 @@ var PORT = normalizePort(process.env.PORT || 3330);
 const server = require('http').createServer(app);
 
 server.listen(PORT, () => {
-    logger.info('Server is listening on: %s', `http://localhost:${PORT}`);
+	logger.info('Server is listening on: %s', `http://localhost:${PORT}`);
+	logger.debug('Process id: %s', process.pid);
 });

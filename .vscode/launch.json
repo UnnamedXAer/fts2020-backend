@@ -16,6 +16,12 @@
 			"name": "Launch Program - integratedTerminal",
 			"program": "${workspaceFolder}/dist/server/index.js",
 			"console": "integratedTerminal"
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to existing process",
+			"processId": "${command:PickProcess}"
 		}
 	]
 }

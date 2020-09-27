@@ -1,7 +1,7 @@
 import { format } from "winston";
 
 require('dotenv').config();
-const showStack = process.env.SHOW_STACK_IN_LOGS === 'TRUE';
+const showStack = process.env.LOGGER_SHOW_STACK === 'TRUE';
 
 export const consoleTransportFormat = format.combine(
 	format.colorize(),

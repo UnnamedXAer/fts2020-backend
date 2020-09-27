@@ -12,7 +12,7 @@ export type LoggerLevel =
 	| 'silly';
 
 const logger = createLogger({
-	level: process.env.TRACE_LEVEL,
+	level: process.env.LOGGER_TRACE_LEVEL,
 	format: format.combine(
 		format.timestamp({
 			format: 'YYYY-MM-DD HH:mm:ss',
@@ -51,7 +51,7 @@ const logger = createLogger({
 	exitOnError: false,
 });
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.LOGGER_CONSOLE === 'TRUE') {
 	logger.add(
 		new transports.Console({
 			format: consoleTransportFormat,
@@ -59,11 +59,8 @@ if (process.env.NODE_ENV !== 'production') {
 		})
 	);
 }
-logger.log(
-	process.env.TRACE_LEVEL!,
-	'logger: TRACE_LEVEL: %s',
-	process.env.TRACE_LEVEL
-);
+logger.log(process.env.LOGGER_TRACE_LEVEL!, 'logger: LOGGER_TRACE_LEVEL: %s', process.env.LOGGER_TRACE_LEVEL);
+logger.log(process.env.LOGGER_TRACE_LEVEL!, 'Environment:  %s', process.env.NODE_ENV);
 
 export default logger;
 module.exports = logger;
