@@ -8,7 +8,8 @@
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node dist/server/index.js",
+		"start": "ts-node src/server/index.ts",
+		"dev": "nodemon -x ts-node src/server/index.ts",
 		"migrate:make": "cross-env TRACE_LEVEL=\"Silly\" knex -x ts --cwd src/db/ migrate:make",
 		"migrate:up": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:up",
 		"migrate:latest": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:latest",

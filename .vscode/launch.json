@@ -19,6 +19,15 @@
 		},
 		{
 			"type": "node",
+			"request": "launch",
+			"name": "3. Launch Program - integratedTerminal",
+			"preLaunchTask": "tsc: build - tsconfig.json",
+			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
+			"program": "${workspaceFolder}/src/server/index.ts",
+			"console": "integratedTerminal"
+		},
+		{
+			"type": "node",
 			"request": "attach",
 			"name": "Attach to existing process",
 			"processId": "${command:PickProcess}"
