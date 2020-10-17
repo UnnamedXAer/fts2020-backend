@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getById, getByEmailAddress, update } from '../controllers/UsersController';
+import { getById, getByEmailAddress, update } from '../Controllers/UsersController';
 import ensureAuthenticated from '../middleware/ensureAuthenticated';
 const router = Router();
 

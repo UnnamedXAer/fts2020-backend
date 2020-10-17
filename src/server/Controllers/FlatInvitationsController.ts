@@ -7,13 +7,14 @@ import logger from '../../logger';
 import HttpException from '../utils/HttpException';
 import FlatData from '../dataAccess/Flat/FlatData';
 import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
-import { FlatInvitationStatus, FlatInvitationActions } from '../customTypes/DbTypes';
 import { sendInvitationsToFlat, sendFlatInvitation } from '../utils/flatInvitations';
 import FlatInvitationModel, {
 	FlatInvitationPresentationModel,
 } from '../models/FlatInvitation';
 import UserData from '../dataAccess/User/UserData';
 import { assertUnreachable } from '../utils/assertUnreachable';
+import { FlatInvitationStatus } from '../../constants/dbFields';
+import { FlatInvitationActions } from '../../constants/dbFields';
 
 export const getFlatInvitations: RequestHandler[] = [
 	param('flatId').isInt().toInt(),

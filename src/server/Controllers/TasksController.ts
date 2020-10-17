@@ -5,9 +5,9 @@ import HttpException from '../utils/HttpException';
 import { getLoggedUserId } from '../utils/authUser';
 import logger from '../../logger';
 import { validationResult, body, param } from 'express-validator';
-import { TaskPeriodUnit } from '../customTypes/TaskTypes';
 import TaskModel from '../models/TaskModel';
 import FlatData from '../dataAccess/Flat/FlatData';
+import { TaskPeriodUnit } from '../../constants/dbFields';
 
 export const getFlatTasks: RequestHandler[] = [
 	param('flatId').isInt().toInt(),

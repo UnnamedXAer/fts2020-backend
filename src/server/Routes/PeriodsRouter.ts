@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUserCurrentPeriods } from '../controllers/TaskPeriodsController';
+import { getUserCurrentPeriods } from '../Controllers/TaskPeriodsController';
 const router = Router();
 
 router.get('/current', getUserCurrentPeriods);

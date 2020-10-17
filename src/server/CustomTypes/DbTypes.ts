@@ -1,51 +1,6 @@
-import { TaskPeriodUnit } from './TaskTypes';
-
-export enum FlatInvitationActions {
-	'ACCEPT' = 'ACCEPT',
-	'REJECT' = 'REJECT',
-	'CANCEL' = 'CANCEL',
-	'RESEND' = 'RESEND',
-}
-
-export enum FlatInvitationStatus {
-	'CREATED' = 'CREATED',
-	'SEND_ERROR' = 'SEND_ERROR',
-	'PENDING' = 'PENDING',
-	'ACCEPTED' = 'ACCEPTED',
-	'REJECTED' = 'REJECTED',
-	'EXPIRED' = 'EXPIRED',
-	'CANCELED' = 'CANCELED',
-}
+import { FlatInvitationStatus, TaskPeriodUnit } from '../../constants/dbFields';
 
 export type Provider = 'local' | 'google' | 'github';
-
-export const db = {
-	CommonCols: {
-		user: [
-			'id',
-			'emailAddress',
-			'userName',
-			'provider',
-			'joinDate',
-			'lastModDate',
-			'avatarUrl',
-			'active',
-		],
-		flatInvitation: [
-			'id',
-			'emailAddress',
-			'flatId',
-			'sendDate',
-			'actionDate',
-			'status',
-			'createAt',
-			'createBy',
-			'token',
-			'actionBy',
-		],
-		flatMembers: ['id', 'flatId', 'userId', 'addedBy', 'addedAt'],
-	},
-};
 
 export interface UserRow {
 	id?: number;
@@ -115,7 +70,7 @@ export interface FlatMembersRow {
 	addedBy: number;
 }
 
-export type MembersForFlatRow = {
+export interface MembersForFlatRow {
 	userId: number;
 };
 
@@ -138,7 +93,7 @@ export interface TaskPeriodsRow {
 	completedAt?: Date;
 }
 
-export type TaskPeriodsFullRow = {
+export interface TaskPeriodsFullRow {
 	id: number;
 	taskId: number;
 	startDate: Date;

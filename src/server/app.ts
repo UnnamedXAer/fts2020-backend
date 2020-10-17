@@ -7,17 +7,17 @@ import session from 'express-session';
 import cors from 'cors';
 import passport from 'passport';
 import errorMiddleware from './middleware/errorMiddleware';
-import router from './routes';
 import { expressWinstonLogger } from '../logger/expressLogger';
 const KnexSessionStore = require('connect-session-knex')(session);
 import passportConfig from './auth/passport';
 import { SESSION_DURATION } from '../config/config';
+import router from './Routes/routes';
 passportConfig(passport);
+const isDevMode = process.env.NODE_ENV === 'development';
 
 export const app = express();
 app.use(
 	cors({
-		// origin: `http://localhost:${process.env.CLIENT_PORT}`,
 		origin: true,
 		credentials: true,
 	})
@@ -39,13 +39,21 @@ const store = new KnexSessionStore({
 	tablename: 'sessions', // optional. Defaults to 'sessions'
 });
 
+if (!isDevMode) {
+	app.set('trust proxy', 1);
+}
+
 const expressSession = session({
 	secret: process.env.SESSION_SECRET || 'default-session-secret',
+	name: process.env.SESSION_NAME || 'default-session-name',
 	resave: false,
-	saveUninitialized: true,
+	saveUninitialized: isDevMode ? true : false,
 	store: store,
-	// cookie: {secure: true}
-	cookie: { maxAge: SESSION_DURATION },
+	cookie: {
+		maxAge: SESSION_DURATION,
+		httpOnly: true,
+		secure: !isDevMode ? true : false,
+	},
 });
 
 app.use(expressSession);
@@ -57,18 +65,25 @@ app.use(expressWinstonLogger);
 logger.info('About to add Routes');
 app.use(router);
 app.get('/', (_req: Request, res: Response) => {
-	res.send({ response: 'FTS 2020' }).status(200);
-});
-
-app.get('/mobile/invitation', (_req: Request, res: Response) => {
-	const href = `exp://192.168.1.9:19000/--/invitations/${'ecd736ac-9077-486f-acb0-82246a32c535'}`;
-	res.send(
-		`<h1 color="teal">FTS 2020</h2>
-		<p>${new Date().toLocaleString()}</p>
-		<hr />
-	<a style="font-size:40px" href="${href}" title="Open FTS2020 web page.">HERE: ${href}</a>
-	`
-	);
+	const text = [
+		'<!DOCTYPE html>',
+		'<html lang="en">',
+		'<head>',
+		'	<meta charset="UTF-8">',
+		'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+		'	<title>FTS2020</title>',
+		'</head>',
+		'<body>',
+		`<script>
+			window.open((navigator.userAgent.indexOf("Android") === -1 ? 
+					"${process.env.WEB_APP_URL}" 
+					: "${process.env.MOBILE_APP_URL}")
+				,"_self");
+		</script>`,
+		'</body>',
+		'</html>',
+	].join(' ');
+	res.status(200).send(text);
 });
 
 app.get('/debug', (_req, res) => {

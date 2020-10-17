@@ -5,14 +5,14 @@ import {
 	FlatRow,
 	FlatMembersRow,
 	MembersForFlatRow,
-	FlatInvitationStatus,
 	FlatInvitationRow,
 	TaskRow,
-} from '../../customTypes/DbTypes';
+} from '../../CustomTypes/DbTypes';
 import UserModel from '../../models/UserModel';
 import TaskData from '../Task/TaskData';
 import PeriodData from '../PeriodData/PeriodData';
 import TaskModel from '../../models/TaskModel';
+import { FlatInvitationStatus } from '../../../constants/dbFields';
 
 class FlatData {
 	static async getById(id: number) {

@@ -1,7 +1,7 @@
 # Folders
 node_modules
 dist
-logs
+/logs
 
 # Enviromet variables
 .env

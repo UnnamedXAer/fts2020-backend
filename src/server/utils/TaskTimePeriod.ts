@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { TaskPeriodUnit } from '../customTypes/TaskTypes';
+import { TaskPeriodUnit } from '../../constants/dbFields';
 
 export function updateDates(
 	unit: TaskPeriodUnit,

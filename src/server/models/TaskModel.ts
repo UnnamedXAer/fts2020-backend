@@ -1,4 +1,4 @@
-import { TaskPeriodUnit } from '../customTypes/TaskTypes';
+import { TaskPeriodUnit } from '../../constants/dbFields';
 
 export default class TaskModel {
 	id?: number;

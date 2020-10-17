@@ -1,6 +1,6 @@
-import { FlatInvitationStatus } from '../customTypes/DbTypes';
 import UserModel from './UserModel';
 import FlatModel from './FlatModel';
+import { FlatInvitationStatus } from '../../constants/dbFields';
 
 export default class FlatInvitationModel {
 	id?: number;

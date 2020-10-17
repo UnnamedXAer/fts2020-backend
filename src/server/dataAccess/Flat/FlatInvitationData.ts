@@ -4,10 +4,10 @@ import FlatInvitationModel, {
 } from '../../models/FlatInvitation';
 import knex from '../../../db';
 import logger from '../../../logger';
-import { FlatInvitationRow, db } from '../../customTypes/DbTypes';
-import { FlatInvitationStatus } from '../../customTypes/DbTypes';
+import { FlatInvitationRow } from '../../CustomTypes/DbTypes';
 import UserData from '../User/UserData';
 import FlatData from './FlatData';
+import { db, FlatInvitationStatus } from '../../../constants/dbFields';
 
 class FlatInvitationData {
 	static async getById(id: number) {

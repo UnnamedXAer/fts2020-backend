@@ -3,7 +3,7 @@ import {
 	getInvitationsPresentation,
 	updateFlatInvitationStatus,
 	getUserInvitations,
-} from '../controllers/FlatInvitationsController';
+} from '../Controllers/FlatInvitationsController';
 const router = Router({ mergeParams: true });
 
 router.get('/:token', getInvitationsPresentation);

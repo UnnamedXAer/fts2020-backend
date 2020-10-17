@@ -1,5 +1,5 @@
 import * as Knex from 'knex';
-import { FlatInvitationStatus } from '../../server/customTypes/DbTypes';
+import { FlatInvitationStatus } from '../../constants/dbFields';
 
 export async function up(knex: Knex): Promise<any> {
 	return Promise.all([

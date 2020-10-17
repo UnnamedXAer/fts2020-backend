@@ -9,7 +9,7 @@ import UserData from '../dataAccess/User/UserData';
 import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
 import logger from '../../logger';
 import { sendMail } from './mail';
-import { FlatInvitationStatus } from '../customTypes/DbTypes';
+import { FlatInvitationStatus } from '../../constants/dbFields';
 
 export const sendInvitationsToFlat = async (flatId: number) => {
 	let flat: FlatModel | null;

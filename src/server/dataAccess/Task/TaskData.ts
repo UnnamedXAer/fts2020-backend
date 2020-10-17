@@ -1,6 +1,6 @@
 import knex from '../../../db';
 import logger from '../../../logger';
-import { TaskRow, TaskMembersRow, UserRow } from '../../customTypes/DbTypes';
+import { TaskRow, TaskMembersRow, UserRow } from '../../CustomTypes/DbTypes';
 import TaskModel from '../../models/TaskModel';
 import { TaskMemberModel } from '../../models/TaskMemberModel';
 import UserModel from '../../models/UserModel';

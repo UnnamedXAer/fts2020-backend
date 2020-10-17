@@ -4,16 +4,16 @@ import {
 	create,
 	updateFlat,
 	getFlat,
-} from '../controllers/FlatsController';
+} from '../Controllers/FlatsController';
 import {
 	deleteMember,
 	getMembers,
-} from '../controllers/FlatMembersController';
+} from '../Controllers/FlatMembersController';
 import flatTasksRouter from './FlatTasksRouter';
 import {
 	getFlatInvitations,
 	inviteMembers,
-} from '../controllers/FlatInvitationsController';
+} from '../Controllers/FlatInvitationsController';
 const router = Router({ mergeParams: true });
 
 router.get('/:id', getFlat);

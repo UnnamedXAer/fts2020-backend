@@ -1,4 +1,4 @@
-import { Provider } from '../customTypes/DbTypes';
+import { Provider } from '../CustomTypes/DbTypes';
 
 export class UserRegisterModel {
     constructor(

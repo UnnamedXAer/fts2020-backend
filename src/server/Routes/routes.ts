@@ -16,4 +16,5 @@ router.use('/flats', ensureAuthenticated, flatsRouter);
 router.use('/tasks', ensureAuthenticated, tasksRouter);
 router.use('/periods', ensureAuthenticated, periodsRouter);
 router.use('/invitations', ensureAuthenticated, invitationsRouter);
+
 export default router;

@@ -10,7 +10,7 @@ import { UserRegisterModel } from '../models/UserAuthModels';
 import UserModel from '../models/UserModel';
 import { SESSION_DURATION } from '../../config/config';
 import { getLoggedUser } from '../utils/authUser';
-import { Provider } from '../customTypes/DbTypes';
+import { Provider } from '../CustomTypes/DbTypes';
 
 export const logIn: RequestHandler[] = [
 	body('emailAddress')
@@ -37,7 +37,9 @@ export const logIn: RequestHandler[] = [
 				if (err) {
 					return next(new HttpException(500, err));
 				}
-				res.status(200).json({ user, expiresIn: SESSION_DURATION });
+				const payload = { user, expiresIn: SESSION_DURATION };
+				logger.debug('/auth/login - [req.login], %o', payload);
+				res.status(200).json(payload);
 			});
 		})(req, res, next);
 	},
@@ -232,9 +234,8 @@ const externalProviderAuthSuccess = async (
 			<script>\n
 				function go() {
 					window.open((navigator.userAgent.indexOf("Android") === -1 ? 
-						"${process.env.WEB_APP_URL}" 
-						: "${process.env.MOBILE_APP_URL}")
-						+"/auth/complete?provider=${provider}#success",
+						"${process.env.WEB_APP_URL}"+"/auth/complete?provider=${provider}#success"
+						: "${process.env.MOBILE_APP_URL}"),
 					"_self");
 				}\n
 			</script>\n

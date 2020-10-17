@@ -1,16 +1,17 @@
 {
-	"name": "fts-backend",
-	"version": "1.0.0",
-	"description": "FTS-2020 backend",
+	"name": "fts-api",
+	"version": "1.0.1",
+	"description": "FTS-2020 API",
 	"main": "dist/server/index.js",
 	"engines": {
-		"node": "14.0"
+		"node": "14.4.0",
+		"npm": "6.14.5"
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node dist/server/index.js",
+		"postinstall": "npm run migrate:latest && npm run seed:run",
 		"build": "tsc",
-		"postinstall": "npm run build",
+		"start": "node dist/server/index.js",
 		"dev": "nodemon -x ts-node src/server/index.ts",
 		"migrate:make": "cross-env TRACE_LEVEL=\"Silly\" knex -x ts --cwd src/db/ migrate:make",
 		"migrate:up": "cross-env TRACE_LEVEL=\"Silly\" knex --cwd src/db/ migrate:up",
@@ -29,6 +30,7 @@
 		"bcrypt": "^5.0.0",
 		"connect-session-knex": "^1.5.0",
 		"cors": "^2.8.5",
+		"cross-env": "^7.0.2",
 		"dotenv": "^8.2.0",
 		"express": "^4.17.1",
 		"express-async-errors": "^3.1.1",
@@ -45,10 +47,10 @@
 		"passport-google-oauth20": "^2.0.0",
 		"passport-local": "^1.0.0",
 		"pg": "^8.2.1",
-		"ts-node": "^8.10.2",
+		"ts-node": "^9.0.0",
+		"typescript": "^3.9.7",
 		"uuid": "^8.1.0",
-		"winston": "^3.2.1",
-		"typescript": "^3.9.5"
+		"winston": "^3.2.1"
 	},
 	"devDependencies": {
 		"@types/bcrypt": "^3.0.0",
@@ -65,7 +67,6 @@
 		"@types/passport-local": "^1.0.33",
 		"@types/uuid": "^8.0.0",
 		"@types/validator": "^13.0.0",
-		"cross-env": "^7.0.2",
 		"nodemon": "^2.0.2"
 	}
 }

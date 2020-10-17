@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getFlatTasks, create, deleteTask } from '../controllers/TasksController';
+import { getFlatTasks, create, deleteTask } from '../Controllers/TasksController';
 
 const router = Router({ mergeParams: true });
 

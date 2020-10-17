@@ -1,16 +1,15 @@
 import knex from '../../../db';
 import UserModel from '../../models/UserModel';
-import { UserRow, db } from '../../customTypes/DbTypes';
+import { UserRow } from '../../CustomTypes/DbTypes';
 import { UserExternalRegisterModel } from '../../models/UserAuthModels';
 import { UserRegisterModel } from '../../models/UserAuthModels';
 import logger from '../../../logger';
+import { db } from '../../../constants/dbFields';
 
 class UserData {
 	static async getAll() {
 		try {
-			const results: UserRow[] = await knex('appUser').select(
-				db.CommonCols.user
-			);
+			const results: UserRow[] = await knex('appUser').select(db.CommonCols.user);
 			const users = results.map((row) => {
 				const user = this.mapRowToModel(row);
 				return user;
@@ -96,11 +95,7 @@ class UserData {
 				return null;
 			}
 			const user = this.mapRowToModel(row);
-			logger.debug(
-				'[UserData].getById (%s) results count: %s',
-				id,
-				results.length
-			);
+			logger.debug('[UserData].getById (%s) results count: %s', id, results.length);
 			return user;
 		} catch (err) {
 			logger.debug('[USERData].update error: %o', err);

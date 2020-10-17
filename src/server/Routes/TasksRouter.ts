@@ -3,14 +3,14 @@ import {
 	getUserTasks,
 	getTaskById,
 	update,
-} from '../controllers/TasksController';
-import { setMembers, getMembers } from '../controllers/TaskMembersController';
+} from '../Controllers/TasksController';
+import { setMembers, getMembers } from '../Controllers/TaskMembersController';
 import {
 	getTaskPeriods,
 	generatePeriods,
 	completeTaskPeriod,
 	reassignTaskPeriod,
-} from '../controllers/TaskPeriodsController';
+} from '../Controllers/TaskPeriodsController';
 
 const router = Router({ mergeParams: true });
 

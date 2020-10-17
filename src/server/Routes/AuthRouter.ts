@@ -9,7 +9,7 @@ import {
 	getCurrentUser,
 	googleAuthenticate,
 	googleAuthenticateCallback,
-} from '../controllers/AuthController';
+} from '../Controllers/AuthController';
 import ensureAuthenticated from '../middleware/ensureAuthenticated';
 const router = Router();
 
