@@ -52,7 +52,8 @@ const expressSession = session({
 	cookie: {
 		maxAge: SESSION_DURATION,
 		httpOnly: true,
-		secure: !isDevMode ? true : false
+		secure: !isDevMode ? true : false,
+		sameSite: 'none'
 	}
 });
 
