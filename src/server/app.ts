@@ -64,41 +64,49 @@ app.use(passport.session());
 app.use(expressWinstonLogger);
 logger.info('About to add Routes');
 app.use(router);
-app.get('/', (_req: Request, res: Response) => {
-	const text = [
-		'<!DOCTYPE html>',
-		'<html lang="en">',
-		'<head>',
-		'	<meta charset="UTF-8">',
-		'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-		'	<title>FTS2020</title>',
-		'</head>',
-		'<body>',
-		`<main id="main"></main>`,
+app.get('/', (req: Request, res: Response) => {
+	if (req.headers['user-agent']) {
+		if (req.headers['user-agent'].indexOf('Android') > -1) {
+			res.redirect(`${process.env.MOBILE_APP_URL}`);
+		} else {
+			res.redirect(`${process.env.WEB_APP_URL}`);
+		}
+	} else {
+		const text = [
+			'<!DOCTYPE html>',
+			'<html lang="en">',
+			'<head>',
+			'	<meta charset="UTF-8">',
+			'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+			'	<title>FTS2020</title>',
+			'</head>',
+			'<body>',
+			`<main id="main"></main>`,
 
-		'<script>',
-		'window.document.body.getElementById("main").innerHTML = `\n',
-		'<h1 color="teal">FTS 2020</h1>\n',
-		'<ul>\n',
-		'<li>userAgent: ${navigator.userAgent}</li>\n',
-		'<li>platform: ${navigator.platform}</li>\n',
-		'<li>vendor: ${navigator.vendor}</li>\n',
-		`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
-		`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
-		'</ul>\n',
-		'<p>WORK!!!!!!!!</p>`',
-		'</script>',
+			'<script>',
+			'window.document.body.getElementById("main").innerHTML = `\n',
+			'<h1 color="teal">FTS 2020</h1>\n',
+			'<ul>\n',
+			'<li>userAgent: ${navigator.userAgent}</li>\n',
+			'<li>platform: ${navigator.platform}</li>\n',
+			'<li>vendor: ${navigator.vendor}</li>\n',
+			`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
+			`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
+			'</ul>\n',
+			'<p>WORK!!!!!!!!</p>`',
+			'</script>',
 
-		`<script>
+			`<script>
 			window.open((navigator.userAgent.indexOf("Android") === -1 ? 
 					"${process.env.WEB_APP_URL}" 
 					: "${process.env.MOBILE_APP_URL}")
 				,"_self");
 		</script>`,
-		'</body>',
-		'</html>'
-	].join(' ');
-	res.status(200).send(text);
+			'</body>',
+			'</html>'
+		].join(' ');
+		res.status(200).send(text);
+	}
 });
 
 app.get('/debug', (_req, res) => {
@@ -108,7 +116,7 @@ app.get('/debug', (_req, res) => {
 		'<head>',
 		'	<meta charset="UTF-8">',
 		'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-		'	<title>Document</title>',
+		'	<title>FTPS2020 info</title>',
 		'</head>',
 		'<body>',
 		'<script>',
@@ -120,6 +128,7 @@ app.get('/debug', (_req, res) => {
 		'<li>vendor: ${navigator.vendor}</li>\n',
 		`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
 		`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
+		`<li>api: ${process.env.API_APP_URL}</li>\n`,
 		'</ul>\n',
 		'<p>WORK!!!!!!!!</p>`',
 		'</script>',

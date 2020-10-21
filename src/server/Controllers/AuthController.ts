@@ -231,12 +231,13 @@ const externalProviderAuthSuccess = async (
 			<p>WEB_APP_URL: ${process.env.WEB_APP_URL}</p>
 			<p>MOBILE_APP_URL: ${process.env.MOBILE_APP_URL}</p>
 			<p>${provider}</provider>
+			<p id="redirectTo">redirectTo:</p>
 			<script>\n
+				var url = (navigator.userAgent.indexOf("Android") === -1 ? 
+				"${process.env.WEB_APP_URL}/auth/complete?provider=${provider}#success"
+				: "${process.env.MOBILE_APP_URL}/auth/success/${provider}");
+				document.getElementById('redirectTo').innerText = url;
 				function go() {
-					var url = (navigator.userAgent.indexOf("Android") === -1 ? 
-					"${process.env.WEB_APP_URL}/auth/complete?provider=${provider}#success"
-					: "${process.env.MOBILE_APP_URL}/auth/success/${provider}");
-					alert(url);
 					window.open(url, "_self");
 				}\n
 			</script>\n
