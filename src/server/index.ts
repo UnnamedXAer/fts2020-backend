@@ -16,5 +16,5 @@ server.listen(PORT, function () {
 			? `${address.address}:${address.port}`
 			: PORT
 	);
-	logger.debug('Process id: %s', process.pid);
+	logger.info('Process id: %s', process.pid);
 });

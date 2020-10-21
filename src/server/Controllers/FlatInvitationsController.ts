@@ -9,7 +9,7 @@ import FlatData from '../dataAccess/Flat/FlatData';
 import FlatInvitationData from '../dataAccess/Flat/FlatInvitationData';
 import { sendInvitationsToFlat, sendFlatInvitation } from '../utils/flatInvitations';
 import FlatInvitationModel, {
-	FlatInvitationPresentationModel,
+	FlatInvitationPresentationModel
 } from '../models/FlatInvitation';
 import UserData from '../dataAccess/User/UserData';
 import { assertUnreachable } from '../utils/assertUnreachable';
@@ -32,7 +32,7 @@ export const getFlatInvitations: RequestHandler[] = [
 			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid parameter.', {
-					errorsArray,
+					errorsArray
 				})
 			);
 		}
@@ -53,7 +53,7 @@ export const getFlatInvitations: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];
 
 export const inviteMembers: RequestHandler[] = [
@@ -96,7 +96,7 @@ export const inviteMembers: RequestHandler[] = [
 						? 'Not all conditions are fulfilled.'
 						: 'Invalid param.',
 					{
-						errorsArray,
+						errorsArray
 					}
 				)
 			);
@@ -131,8 +131,9 @@ export const inviteMembers: RequestHandler[] = [
 			let emailsToCreateInvs: string[] = [];
 			let invIdsToUpdate: number[] = [];
 			emails.forEach((email) => {
-				const invitationId = notAcceptedFlatInvitations.find((x) => x.emailAddress === email)
-					?.id;
+				const invitationId = notAcceptedFlatInvitations.find(
+					(x) => x.emailAddress === email
+				)?.id;
 
 				if (invitationId !== void 0) {
 					invIdsToUpdate.push(invitationId);
@@ -162,7 +163,7 @@ export const inviteMembers: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];
 
 export const updateFlatInvitationStatus: RequestHandler[] = [
@@ -188,7 +189,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid property.', {
-					errorsArray,
+					errorsArray
 				})
 			);
 		}
@@ -275,7 +276,7 @@ export const updateFlatInvitationStatus: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];
 
 export const getInvitationsPresentation: RequestHandler[] = [
@@ -292,7 +293,7 @@ export const getInvitationsPresentation: RequestHandler[] = [
 			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(HttpStatus.BAD_REQUEST, 'Invalid parameter.', {
-					errorsArray,
+					errorsArray
 				})
 			);
 		}
@@ -348,14 +349,14 @@ export const getInvitationsPresentation: RequestHandler[] = [
 				invitedPerson: invitedPerson ? invitedPerson : invitation!.emailAddress,
 				flat: flat!,
 				flatOwner: flatOwner!,
-				actionBy: actionPerson,
+				actionBy: actionPerson
 			});
 
 			res.status(HttpStatus.OK).send(payload);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];
 
 export const getUserInvitations: RequestHandler[] = [
@@ -372,5 +373,5 @@ export const getUserInvitations: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];

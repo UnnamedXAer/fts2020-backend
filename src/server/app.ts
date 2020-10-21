@@ -19,24 +19,24 @@ export const app = express();
 app.use(
 	cors({
 		origin: true,
-		credentials: true,
+		credentials: true
 	})
 );
 app.use(
 	express.json({
-		limit: '25mb',
+		limit: '25mb'
 	})
 );
 app.use(
 	express.urlencoded({
 		extended: true,
-		limit: '25mb',
+		limit: '25mb'
 	})
 );
 
 const store = new KnexSessionStore({
 	knex: require('../db'),
-	tablename: 'sessions', // optional. Defaults to 'sessions'
+	tablename: 'sessions' // optional. Defaults to 'sessions'
 });
 
 if (!isDevMode) {
@@ -52,8 +52,8 @@ const expressSession = session({
 	cookie: {
 		maxAge: SESSION_DURATION,
 		httpOnly: true,
-		secure: !isDevMode ? true : false,
-	},
+		secure: !isDevMode ? true : false
+	}
 });
 
 app.use(expressSession);
@@ -74,6 +74,21 @@ app.get('/', (_req: Request, res: Response) => {
 		'	<title>FTS2020</title>',
 		'</head>',
 		'<body>',
+		`<main id="main"></main>`,
+
+		'<script>',
+		'window.document.body.getElementById("main").innerHTML = `\n',
+		'<h1 color="teal">FTS 2020</h1>\n',
+		'<ul>\n',
+		'<li>userAgent: ${navigator.userAgent}</li>\n',
+		'<li>platform: ${navigator.platform}</li>\n',
+		'<li>vendor: ${navigator.vendor}</li>\n',
+		`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
+		`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
+		'</ul>\n',
+		'<p>WORK!!!!!!!!</p>`',
+		'</script>',
+
 		`<script>
 			window.open((navigator.userAgent.indexOf("Android") === -1 ? 
 					"${process.env.WEB_APP_URL}" 
@@ -81,7 +96,7 @@ app.get('/', (_req: Request, res: Response) => {
 				,"_self");
 		</script>`,
 		'</body>',
-		'</html>',
+		'</html>'
 	].join(' ');
 	res.status(200).send(text);
 });
@@ -103,12 +118,14 @@ app.get('/debug', (_req, res) => {
 		'<li>userAgent: ${navigator.userAgent}</li>\n',
 		'<li>platform: ${navigator.platform}</li>\n',
 		'<li>vendor: ${navigator.vendor}</li>\n',
+		`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
+		`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
 		'</ul>\n',
 		'<p>WORK!!!!!!!!</p>`',
 		'</script>',
 		'<hr />',
 		'</body>',
-		'</html>',
+		'</html>'
 	].join(' ');
 	res.send(txt);
 });

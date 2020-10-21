@@ -147,7 +147,7 @@ const getEmailInvitationContent = (
 		} <span style="color: #888;"></span>(${
 		owner.userName
 	})</strong> to join a flat in <strong style="font-style: italic;">FTS2020</strong> application.</p>
-		<p style="font-size: 1.2em;"><a href="${WEB_URL}/invitation/${token}" target="blank" title="Open FTS2020 web page.">Click this link
+		<p style="font-size: 1.2em;"><a href="${process.env.API_APP_URL}/redirect/invitation/${token}" target="blank" title="Open FTS2020 web page.">Click this link
 			to view invitation and decide if accept or decline it.</a></p>
 		<p>If you are not yet member of <strong style="font-style: italic;">FTS2020</strong> you can also sign up.</p>
 		<div style="

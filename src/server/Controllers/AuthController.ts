@@ -233,10 +233,11 @@ const externalProviderAuthSuccess = async (
 			<p>${provider}</provider>
 			<script>\n
 				function go() {
-					window.open((navigator.userAgent.indexOf("Android") === -1 ? 
-						"${process.env.WEB_APP_URL}"+"/auth/complete?provider=${provider}#success"
-						: "${process.env.MOBILE_APP_URL}"),
-					"_self");
+					var url = (navigator.userAgent.indexOf("Android") === -1 ? 
+					"${process.env.WEB_APP_URL}/auth/complete?provider=${provider}#success"
+					: "${process.env.MOBILE_APP_URL}/auth/success/${provider}");
+					alert(url);
+					window.open(url, "_self");
 				}\n
 			</script>\n
 			<button style="font-size: 2.5em; color:green;" onclick="go()">Go</button>\n
