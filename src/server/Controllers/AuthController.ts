@@ -42,7 +42,7 @@ export const logIn: RequestHandler[] = [
 				res.status(200).json(payload);
 			});
 		})(req, res, next);
-	},
+	}
 ];
 
 export const register: RequestHandler[] = [
@@ -82,14 +82,14 @@ export const register: RequestHandler[] = [
 		logger.info('/auth/register a user try to register with data %o', {
 			...req.body,
 			passport: 'password - hidden',
-			confirmPassword: 'password - hidden',
+			confirmPassword: 'password - hidden'
 		});
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
 			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray,
+					errorsArray
 				})
 			);
 		}
@@ -100,7 +100,7 @@ export const register: RequestHandler[] = [
 			confirmPassword,
 			userName,
 			avatarUrl,
-			provider = 'local',
+			provider = 'local'
 		} = <UserRegisterModel>req.body;
 
 		const hashedPassword = await bcrypt.hash(password, bcrypt.genSaltSync(10));
@@ -142,7 +142,7 @@ export const register: RequestHandler[] = [
 				res.status(201).json({ user, expiresIn: SESSION_DURATION });
 			});
 		})(req, res, next);
-	},
+	}
 ];
 
 export const logOut: RequestHandler = (req, res, _) => {
@@ -173,7 +173,7 @@ export const changePassword: RequestHandler[] = [
 			let errorsArray = errors.array().map((x) => ({ msg: x.msg, param: x.param }));
 			return next(
 				new HttpException(422, 'Not all conditions are fulfilled', {
-					errorsArray,
+					errorsArray
 				})
 			);
 		}
@@ -200,7 +200,7 @@ export const changePassword: RequestHandler[] = [
 		try {
 			const partialUser: Partial<UserModel> = {
 				password: hashedPassword,
-				id: signedUser.id,
+				id: signedUser.id
 			};
 
 			await UserData.update(partialUser);
@@ -209,7 +209,7 @@ export const changePassword: RequestHandler[] = [
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
-	},
+	}
 ];
 
 const externalProviderAuthSuccess = async (
@@ -247,31 +247,31 @@ const externalProviderAuthSuccess = async (
 };
 
 export const githubAuthenticate = passport.authenticate('github', {
-	scope: ['read:user'],
+	scope: ['read:user']
 });
 
 export const githubAuthenticateCallback: RequestHandler[] = [
 	passport.authenticate('github', {
-		scope: ['read:user'],
+		scope: ['read:user']
 	}),
-	(req, res, next) => externalProviderAuthSuccess(req, res, next, 'github'),
+	(req, res, next) => externalProviderAuthSuccess(req, res, next, 'github')
 ];
 
 export const googleAuthenticate = passport.authenticate('google', {
 	scope: [
 		'https://www.googleapis.com/auth/plus.login',
-		'https://www.googleapis.com/auth/userinfo.email',
-	],
+		'https://www.googleapis.com/auth/userinfo.email'
+	]
 });
 
 export const googleAuthenticateCallback: RequestHandler[] = [
 	passport.authenticate('google', {
 		scope: [
 			'https://www.googleapis.com/auth/plus.login',
-			'https://www.googleapis.com/auth/userinfo.email',
-		],
+			'https://www.googleapis.com/auth/userinfo.email'
+		]
 	}),
-	(req, res, next) => externalProviderAuthSuccess(req, res, next, 'google'),
+	(req, res, next) => externalProviderAuthSuccess(req, res, next, 'google')
 ];
 
 export const getCurrentUser: RequestHandler = (req, res, next) => {

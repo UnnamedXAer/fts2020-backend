@@ -53,7 +53,7 @@ const expressSession = session({
 		maxAge: SESSION_DURATION,
 		httpOnly: true,
 		secure: !isDevMode ? true : false,
-		sameSite: 'none'
+		sameSite: !isDevMode ? 'none' : void 0
 	}
 });
 
