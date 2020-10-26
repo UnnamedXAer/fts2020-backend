@@ -10,7 +10,9 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"postinstall": "npm run migrate:latest && npm run seed:run",
-		"build": "tsc",
+		"build": "npm run compile && npm run copyAssets",
+		"compile": "tsc",
+		"copyAssets": "node copyAssets.js",
 		"start": "node dist/server/index.js",
 		"dev": "nodemon -x ts-node src/server/index.ts",
 		"migrate:make": "cross-env TRACE_LEVEL=\"Silly\" knex -x ts --cwd src/db/ migrate:make",
