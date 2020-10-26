@@ -224,26 +224,25 @@ const externalProviderAuthSuccess = async (
 		provider,
 		signedUser.emailAddress
 	);
-	const txt = `
-		<div style="font-size: 2.5em;">\n
-			<p>${JSON.stringify(req.query, null, '\t')}</p>\n
-			<hr/>\n
-			<p>WEB_APP_URL: ${process.env.WEB_APP_URL}</p>
-			<p>MOBILE_APP_URL: ${process.env.MOBILE_APP_URL}</p>
-			<p>${provider}</provider>
-			<p id="redirectTo">redirectTo:</p>
-			<script>\n
-				var url = (navigator.userAgent.indexOf("Android") === -1 ? 
+
+	if (req.headers['user-agent']) {
+		if (req.headers['user-agent'].indexOf('Android') > -1) {
+			res.redirect(`${process.env.MOBILE_APP_URL}/auth/success/${provider}`);
+		} else {
+			res.redirect(
+				`${process.env.WEB_APP_URL}/auth/complete?provider=${provider}#success`
+			);
+		}
+	} else {
+		const txt = `
+			<script>var url = (navigator.userAgent.indexOf("Android") === -1 ? 
 				"${process.env.WEB_APP_URL}/auth/complete?provider=${provider}#success"
 				: "${process.env.MOBILE_APP_URL}/auth/success/${provider}");
 				document.getElementById('redirectTo').innerText = url;
-				function go() {
 					window.open(url, "_self");
-				}\n
-			</script>\n
-			<button style="font-size: 2.5em; color:green;" onclick="go()">Go</button>\n
-		</div>`;
-	res.status(200).send(txt);
+			</script>`;
+		res.status(200).send(txt);
+	}
 };
 
 export const githubAuthenticate = passport.authenticate('github', {

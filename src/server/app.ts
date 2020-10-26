@@ -73,39 +73,13 @@ app.get('/', (req: Request, res: Response) => {
 			res.redirect(`${process.env.WEB_APP_URL}`);
 		}
 	} else {
-		const text = [
-			'<!DOCTYPE html>',
-			'<html lang="en">',
-			'<head>',
-			'	<meta charset="UTF-8">',
-			'	<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-			'	<title>FTS2020</title>',
-			'</head>',
-			'<body>',
-			`<main id="main"></main>`,
-
-			'<script>',
-			'window.document.body.getElementById("main").innerHTML = `\n',
-			'<h1 color="teal">FTS 2020</h1>\n',
-			'<ul>\n',
-			'<li>userAgent: ${navigator.userAgent}</li>\n',
-			'<li>platform: ${navigator.platform}</li>\n',
-			'<li>vendor: ${navigator.vendor}</li>\n',
-			`<li>web: ${process.env.WEB_APP_URL}</li>\n`,
-			`<li>mobile: ${process.env.MOBILE_APP_URL}</li>\n`,
-			'</ul>\n',
-			'<p>WORK!!!!!!!!</p>`',
-			'</script>',
-
-			`<script>
+		const text = 
+		`<script>
 			window.open((navigator.userAgent.indexOf("Android") === -1 ? 
-					"${process.env.WEB_APP_URL}" 
-					: "${process.env.MOBILE_APP_URL}")
-				,"_self");
-		</script>`,
-			'</body>',
-			'</html>'
-		].join(' ');
+				"${process.env.WEB_APP_URL}" 
+				: "${process.env.MOBILE_APP_URL}")
+			,"_self");
+		</script>`;
 		res.status(200).send(text);
 	}
 });
