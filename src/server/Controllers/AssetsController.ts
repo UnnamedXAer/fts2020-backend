@@ -11,8 +11,6 @@ export const getScreenByName: RequestHandler[] = [
 	),
 	async (req, res, next) => {
 		const screenName = req.params.screenName;
-		const valid = new RegExp('[a-zA-Z0-9-]+(.png)$').test(screenName);
-		console.log('valid', valid);
 		logger.info('assets/screens/%s', screenName);
 
 		const errors = validationResult(req);
@@ -25,8 +23,10 @@ export const getScreenByName: RequestHandler[] = [
 			);
 		}
 
+		const screenPath = path.resolve(__dirname, '../../assets/screens/', screenName);
+		logger.debug('About to send asset: %s', screenPath);
 		try {
-			res.status(200).sendFile(path.resolve(__dirname, '../../assets/screens/', screenName));
+			res.status(200).sendFile(screenPath);
 		} catch (err) {
 			next(new HttpException(HttpStatus.INTERNAL_SERVER_ERROR, err));
 		}
